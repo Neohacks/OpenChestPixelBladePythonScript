@@ -36,6 +36,10 @@ class Input_I(ctypes.Union):
 class Input(ctypes.Structure):
     _fields_ = [("type", ctypes.c_ulong), ("ii", Input_I)]
 
+# --- File Path for Configuration (Ensures Portability) ---
+script_dir = os.path.dirname(os.path.abspath(__file__))
+CONFIG_FILE_PATH = os.path.join(script_dir, "config.json")
+
 # --- Default Configuration (Simplified) ---
 CONFIG = {
     "chest_slot": {"x": 1388, "y": 287},
@@ -51,63 +55,93 @@ is_animating = True
 script_thread = None
 capture_target = None
 
+# --- Custom Themed Widgets ---
+class CustomSlider(tk.Canvas):
+    def __init__(self, parent, from_, to, initial_value, command, **kwargs):
+        super().__init__(parent, **kwargs)
+        self.from_ = from_
+        self.to_ = to
+        self.command = command
+        self.value = initial_value
+        
+        self.bind("<Configure>", self._draw)
+        self.bind("<B1-Motion>", self._on_drag)
+        self.bind("<Button-1>", self._on_drag)
+
+        self.set(initial_value)
+
+    def _draw(self, event=None):
+        self.delete("all")
+        width = self.winfo_width()
+        height = self.winfo_height()
+        
+        self.create_rectangle(5, height/2 - 3, width - 5, height/2 + 3, fill="#313335", outline="")
+        
+        pos = self._value_to_pos(self.value)
+        self.create_oval(pos-6, height/2-6, pos+6, height/2+6, fill="#A9B7C6", outline="#E8E8E8", width=1)
+
+    def _on_drag(self, event):
+        pos = max(5, min(event.x, self.winfo_width() - 5))
+        self.value = self._pos_to_value(pos)
+        self._draw()
+        if self.command:
+            self.command(self.value)
+    
+    def _value_to_pos(self, value):
+        width = self.winfo_width() - 10
+        percentage = (value - self.from_) / (self.to_ - self.from_)
+        return 5 + percentage * width
+
+    def _pos_to_value(self, pos):
+        width = self.winfo_width() - 10
+        percentage = (pos - 5) / width
+        return self.from_ + percentage * (self.to_ - self.from_)
+
+    def get(self):
+        return self.value
+
+    def set(self, value):
+        self.value = value
+        self._draw()
+
 # --- UI and Thread Management ---
 def log_debug(message):
-    """Adds a message to the debug window in a thread-safe way."""
     def append_message():
         if 'debug_output' in globals() and debug_output.winfo_exists():
             debug_output.config(state=tk.NORMAL)
             timestamp = time.strftime("%H:%M:%S")
             debug_output.insert(tk.END, f"[{timestamp}] {message}\n")
             debug_output.config(state=tk.DISABLED)
-            debug_output.see(tk.END) # Autoscroll
+            debug_output.see(tk.END)
     if 'root' in globals() and root.winfo_exists():
         root.after(0, append_message)
 
-# --- Core Helper Functions ---
 def move_and_click(x, y, is_spam=False):
-    """
-    Performs a robust single click using the SendInput method.
-    Includes an option for faster movement and logging for spam clicks.
-    """
-    rand_x = x + random.randint(-3, 3)
-    rand_y = y + random.randint(-3, 3)
-    
-    if not is_spam:
-        log_debug(f"Clicking at ({rand_x}, {rand_y})")
+    rand_x, rand_y = x + random.randint(-3, 3), y + random.randint(-3, 3)
+    if not is_spam: log_debug(f"Clicking at ({rand_x}, {rand_y})")
     
     move_duration = 0.05 if is_spam else random.uniform(0.1, 0.2)
     pyautogui.moveTo(rand_x, rand_y, duration=move_duration)
     
-    F_ABSOLUTE = 0x8000
-    F_MOVE = 0x0001
-    F_LEFTDOWN = 0x0002
-    F_LEFTUP = 0x0004
-    
+    F_ABSOLUTE, F_MOVE, F_LEFTDOWN, F_LEFTUP = 0x8000, 0x0001, 0x0002, 0x0004
     screen_width, screen_height = win32api.GetSystemMetrics(0), win32api.GetSystemMetrics(1)
-    nx = int(rand_x * (65535 / screen_width))
-    ny = int(rand_y * (65535 / screen_height))
+    nx, ny = int(rand_x * (65535 / screen_width)), int(rand_y * (65535 / screen_height))
 
-    inp_down = Input_I()
-    inp_down.mi = MouseInput(nx, ny, 0, (F_ABSOLUTE | F_MOVE | F_LEFTDOWN), 0, None)
+    inp_down = Input_I(); inp_down.mi = MouseInput(nx, ny, 0, (F_ABSOLUTE | F_MOVE | F_LEFTDOWN), 0, None)
     command_down = Input(ctypes.c_ulong(0), inp_down)
     ctypes.windll.user32.SendInput(1, ctypes.pointer(command_down), ctypes.sizeof(command_down))
     time.sleep(random.uniform(0.02, 0.04)) 
-    inp_up = Input_I()
-    inp_up.mi = MouseInput(nx, ny, 0, (F_ABSOLUTE | F_MOVE | F_LEFTUP), 0, None)
+    inp_up = Input_I(); inp_up.mi = MouseInput(nx, ny, 0, (F_ABSOLUTE | F_MOVE | F_LEFTUP), 0, None)
     command_up = Input(ctypes.c_ulong(0), inp_up)
     ctypes.windll.user32.SendInput(1, ctypes.pointer(command_up), ctypes.sizeof(command_up))
     
-    if not is_spam:
-        time.sleep(random.uniform(0.1, 0.15))
+    if not is_spam: time.sleep(random.uniform(0.1, 0.15))
 
 # --- Automation Logic ---
 def automation_loop():
-    """Main logic for the chest-opening bot, using SendInput."""
     global is_running
     log_debug("Automation thread started. Press 'F6' to toggle.")
     time.sleep(2)
-
     while is_running:
         try:
             roblox_win = gw.getWindowsWithTitle('Roblox')
@@ -115,48 +149,38 @@ def automation_loop():
                 log_debug("Roblox window not found. Pausing...")
                 time.sleep(3)
                 continue
-            
             roblox_win = roblox_win[0]
-            
             slot = CONFIG["chest_slot"]
             if slot['x'] == 0 and slot['y'] == 0:
                 log_debug("Chest Slot is not configured. Pausing...")
                 time.sleep(5)
                 continue
-
             log_debug(f"Attempting to open chest at ({slot['x']}, {slot['y']}).")
             move_and_click(slot['x'], slot['y'])
-            time.sleep(random.uniform(0.4, 0.6)) 
-            
+            time.sleep(random.uniform(0.4, 0.6))
             log_debug(f"Clicking 'Open' button at ({CONFIG['open_button']['x']}, {CONFIG['open_button']['y']}).")
             move_and_click(CONFIG["open_button"]['x'], CONFIG["open_button"]['y'])
-            time.sleep(random.uniform(0.8, 1.0)) 
-
+            time.sleep(random.uniform(0.8, 1.0))
             log_debug("Spam-clicking chest to open...")
             open_pos = CONFIG["opening_click_pos"]
             start_time = time.time()
             while time.time() - start_time < CONFIG["opening_duration"]:
                 if not is_running: break
                 move_and_click(open_pos['x'], open_pos['y'], is_spam=True) 
-                time.sleep(CONFIG["opening_click_interval"]) 
-            
+                time.sleep(CONFIG["opening_click_interval"])
             log_debug("Chest sequence complete. Waiting before next cycle.")
-            time.sleep(random.uniform(1.2, 1.5)) 
-
+            time.sleep(random.uniform(1.2, 1.5))
         except Exception as e:
             log_debug(f"ERROR: {e}")
             stop_automation()
-            messagebox.showerror("An Error Occurred", f"Script stopped: {e}")
+            messagebox.showerror("Error", f"Script stopped: {e}")
             break
-            
-    if not is_running:
-         log_debug("Automation stopped by user.")
+    if not is_running: log_debug("Automation stopped by user.")
 
-# --- UI LOGIC AND MANAGEMENT ---
 def start_automation():
     global is_running, script_thread
     if CONFIG["chest_slot"]['x'] == 0 or CONFIG["open_button"]['x'] == 0 or CONFIG["opening_click_pos"]['x'] == 0:
-        messagebox.showwarning("Configuration Incomplete", "Please set the Chest Slot, Open Button, and Opening Click Position.")
+        messagebox.showwarning("Configuration Incomplete", "Please set all required positions.")
         return
     if not is_running:
         is_running = True
@@ -166,9 +190,7 @@ def start_automation():
 
 def stop_automation():
     global is_running
-    if is_running:
-        is_running = False
-        update_ui_state()
+    if is_running: is_running = False; update_ui_state()
 
 def toggle_automation():
     if is_running: stop_automation()
@@ -180,139 +202,103 @@ def update_ui_state():
     stop_button.config(state=tk.NORMAL if is_on else tk.DISABLED)
 
 def save_config():
-    """Saves the current UI settings to config.json."""
     try:
-        def parse_entry(entry_text):
-            return [int(v.strip()) for v in re.findall(r'-?\d+', entry_text)]
-        
+        def parse_entry(entry_text): return [int(v.strip()) for v in re.findall(r'-?\d+', entry_text)]
         coords = parse_entry(chest_slot_entry.get())
         if len(coords) == 2: CONFIG["chest_slot"] = {"x": coords[0], "y": coords[1]}
-
         for key, entry in config_entries.items():
             coords = parse_entry(entry.get())
             if len(coords) == 2: CONFIG[key] = {"x": coords[0], "y": coords[1]}
-
         CONFIG["opening_duration"] = duration_slider.get()
         CONFIG["opening_click_interval"] = interval_slider.get()
-
-        with open("config.json", "w") as f:
-            json.dump(CONFIG, f, indent=4)
-        messagebox.showinfo("Success", "Configuration saved to config.json")
-    except Exception as e:
-        messagebox.showerror("Error", f"Failed to save config. Ensure formats are correct.\n\nError: {e}")
+        
+        with open(CONFIG_FILE_PATH, "w") as f: json.dump(CONFIG, f, indent=4)
+        
+        # New feedback mechanism
+        original_text = save_button['text']
+        save_button.config(text="✓ Saved!", style="Saved.TButton")
+        save_button.config(state=tk.DISABLED)
+        root.after(1500, lambda: (
+            save_button.config(text=original_text, style="Accent5.TButton"),
+            save_button.config(state=tk.NORMAL)
+        ))
+        
+    except Exception as e: 
+        messagebox.showerror("Error", f"Failed to save config: {e}")
 
 def load_config():
-    """Loads settings from config.json if it exists."""
     global CONFIG
-    if os.path.exists("config.json"):
+    if os.path.exists(CONFIG_FILE_PATH):
         try:
-            with open("config.json", "r") as f:
-                loaded_config = json.load(f)
-                for key, value in CONFIG.items():
-                    CONFIG[key] = loaded_config.get(key, value)
-        except json.JSONDecodeError:
-            messagebox.showerror("Config Error", "Could not read config.json. It might be corrupted. Using defaults.")
+            with open(CONFIG_FILE_PATH, "r") as f: loaded_config = json.load(f)
+            for key, value in CONFIG.items(): CONFIG[key] = loaded_config.get(key, value)
+        except json.JSONDecodeError: 
+            messagebox.showerror("Config Error", "config.json is corrupted. Using defaults.")
 
 def on_capture_click(event):
-    """Handles the mouse click event on the transparent capture window."""
     global capture_target, all_set_buttons
     event.widget.destroy() 
-
     if capture_target:
         x, y = event.x_root, event.y_root
         text_val = f"({x}, {y})"
-        
         CONFIG[capture_target["key"]] = {"x": x, "y": y}
-
         capture_target["widget"].delete(0, tk.END)
         capture_target["widget"].insert(0, text_val)
-        
         capture_target["button"].config(style=capture_target["original_style"])
-        for btn in all_set_buttons:
-            btn.config(state=tk.NORMAL)
-        
+        for btn in all_set_buttons: btn.config(state=tk.NORMAL)
         capture_target = None
     root.deiconify() 
 
 def set_capture_target(target_widget, button, original_style, key):
-    """Initiates the screen capture process."""
     global capture_target, all_set_buttons
-    
-    for btn in all_set_buttons:
-        btn.config(state=tk.DISABLED)
+    for btn in all_set_buttons: btn.config(state=tk.DISABLED)
     button.config(state=tk.NORMAL, style="Highlight.TButton")
-
     capture_target = {"widget": target_widget, "button": button, "original_style": original_style, "key": key}
-    
     root.withdraw() 
     capture_window = tk.Toplevel(root)
-    capture_window.attributes('-fullscreen', True)
-    capture_window.attributes('-alpha', 0.1)
-    capture_window.wait_visibility(capture_window)
-    capture_window.attributes('-topmost', True)
+    capture_window.attributes('-fullscreen', True); capture_window.attributes('-alpha', 0.1)
+    capture_window.wait_visibility(capture_window); capture_window.attributes('-topmost', True)
     capture_window.config(cursor="crosshair")
-    
     capture_window.bind("<Button-1>", on_capture_click)
     capture_window.bind("<Escape>", lambda e: (e.widget.destroy(), root.deiconify(), button.config(style=original_style), [btn.config(state=tk.NORMAL) for btn in all_set_buttons]))
 
 # --- Animated Gradient Logic ---
 def create_smooth_gradient(colors, steps_per_transition):
-    """Generates a list of hex color strings for a smooth gradient."""
-    gradient = []
-    extended_colors = colors + [colors[0]] 
+    gradient = []; extended_colors = colors + [colors[0]]
     for i in range(len(extended_colors) - 1):
-        c1 = extended_colors[i]
-        c2 = extended_colors[i+1]
-        r1, g1, b1 = int(c1[1:3], 16), int(c1[3:5], 16), int(c1[5:7], 16)
-        r2, g2, b2 = int(c2[1:3], 16), int(c2[3:5], 16), int(c2[5:7], 16)
+        c1, c2 = extended_colors[i], extended_colors[i+1]
+        r1, g1, b1, r2, g2, b2 = int(c1[1:3],16), int(c1[3:5],16), int(c1[5:7],16), int(c2[1:3],16), int(c2[3:5],16), int(c2[5:7],16)
         for j in range(steps_per_transition):
-            p = j / steps_per_transition
-            r = int(r1 * (1 - p) + r2 * p)
-            g = int(g1 * (1 - p) + g2 * p)
-            b = int(b1 * (1 - p) + b2 * p)
+            p = j/steps_per_transition; r,g,b = int(r1*(1-p)+r2*p), int(g1*(1-p)+g2*p), int(b1*(1-p)+b2*p)
             gradient.append(f'#{r:02x}{g:02x}{b:02x}')
     return gradient
 
 def animate_gradient_thread(bar_canvas, header_canvas, header_font, header_text, colors):
-    """Shifts the colors and triggers a redraw in a loop."""
     color_deque = deque(colors)
     while is_animating:
         try:
-            color_deque.rotate(-1)
-            current_colors = list(color_deque)
-            canvas_list = [bar_canvas, header_canvas]
-            for canvas in canvas_list:
-                if canvas.winfo_exists():
-                    canvas.after(0, update_animations, bar_canvas, header_canvas, header_font, header_text, current_colors)
+            color_deque.rotate(-1); current_colors = list(color_deque)
+            for canvas in [bar_canvas, header_canvas]:
+                if canvas.winfo_exists(): canvas.after(0, update_animations, bar_canvas, header_canvas, header_font, header_text, current_colors)
             time.sleep(0.05)
-        except Exception:
-            break
+        except Exception: break
 
 def update_animations(bar_canvas, header_canvas, header_font, header_text, colors):
-    """Draws the gradient on the canvas and updates the header color."""
-    bar_canvas.delete("all")
-    width = bar_canvas.winfo_width()
-    height = bar_canvas.winfo_height()
-    if width > 1 and height > 1:
+    for canvas in [bar_canvas, header_canvas]: canvas.delete("all")
+    width, height = bar_canvas.winfo_width(), bar_canvas.winfo_height()
+    if width > 1:
         for i, color in enumerate(colors):
-            x0 = i * (width / len(colors))
-            x1 = (i + 1) * (width / len(colors))
+            x0, x1 = i * (width/len(colors)), (i+1) * (width/len(colors))
             bar_canvas.create_rectangle(x0, 0, x1, height, fill=color, outline="")
-
-    header_canvas.delete("all")
-    header_width = header_canvas.winfo_width()
-    header_height = header_canvas.winfo_height()
-    if header_width > 1 and header_height > 1:
+    header_width, header_height = header_canvas.winfo_width(), header_canvas.winfo_height()
+    if header_width > 1:
         text_width = header_font.measure(header_text)
-        x_start = (header_width - text_width) / 2
-        y_center = header_height / 2
-        
+        x_start, y_center = (header_width - text_width) / 2, header_height / 2
         char_colors = deque(colors)
         for char in header_text:
             char_width = header_font.measure(char)
             header_canvas.create_text(x_start, y_center, text=char, fill=char_colors[0], font=header_font, anchor='w')
-            x_start += char_width
-            char_colors.rotate(-4) 
+            x_start += char_width; char_colors.rotate(-4) 
 
 def finder_loop(label):
     while is_animating:
@@ -321,33 +307,26 @@ def finder_loop(label):
             r, g, b = pyautogui.pixel(x, y)
             label.config(text=f"X: {x:>4}, Y: {y:>4}  |  RGB: ({r:>3},{g:>3},{b:>3})")
             time.sleep(0.1)
-        except (OSError, tk.TclError, pyautogui.PyAutoGUIException): break
+        except Exception: break
 
 # --- GUI Creation ---
 def create_gui():
-    global root, start_button, stop_button, chest_slot_entry, config_entries, duration_slider, debug_output, interval_slider, all_set_buttons
+    global root, start_button, stop_button, chest_slot_entry, config_entries, duration_slider, debug_output, interval_slider, all_set_buttons, save_button
     load_config()
-
     root = tk.Tk()
     root.title("Pixel Blade Chest Opener")
-    root.geometry("680x780") 
-    root.resizable(False, False) 
+    root.geometry("680x780"); root.resizable(False, False)
     
-    BG_COLOR = "#2B2B2B"
-    FRAME_COLOR = "#3C3F41"
-    TEXT_COLOR = "#A9B7C6"
-    ENTRY_BG = "#313335"
-    HEADER_COLOR = "#CCCCCC"
+    # --- Theme ---
+    BG_COLOR, FRAME_COLOR, TEXT_COLOR, ENTRY_BG, HEADER_COLOR = "#2B2B2B", "#3C3F41", "#A9B7C6", "#313335", "#CCCCCC"
     DULL_RAINBOW = ["#8C5353", "#8C6F53", "#8C8C53", "#6F8C53", "#538C8C", "#6F538C", "#8C5379"]
-
     root.configure(bg=BG_COLOR)
-    style = ttk.Style(root)
-    style.theme_use('clam')
-
+    
+    # --- Styles ---
+    style = ttk.Style(root); style.theme_use('clam')
     font_family = "Segoe UI"
     style.configure('.', background=BG_COLOR, foreground=TEXT_COLOR, font=(font_family, 10))
-    style.configure('TFrame', background=BG_COLOR)
-    style.configure('TLabel', background=BG_COLOR, foreground=TEXT_COLOR, font=(font_family, 10))
+    style.configure('TFrame', background=BG_COLOR); style.configure('TLabel', background=BG_COLOR, foreground=TEXT_COLOR, font=(font_family, 10))
     style.configure('Header.TLabel', foreground=HEADER_COLOR, font=(font_family, 18, 'bold'))
     style.configure('SubHeader.TLabel', foreground=TEXT_COLOR, font=(font_family, 9, 'italic'))
     style.configure('TLabelframe', background=BG_COLOR, bordercolor=FRAME_COLOR, relief='solid', borderwidth=1)
@@ -358,13 +337,14 @@ def create_gui():
     for i, color in enumerate(DULL_RAINBOW):
         style.configure(f'Accent{i}.TButton', background=color, foreground=HEADER_COLOR)
         style.map(f'Accent{i}.TButton', background=[('active', TEXT_COLOR)])
-    style.configure("Horizontal.TScale", background=BG_COLOR, troughcolor=ENTRY_BG, bordercolor=FRAME_COLOR)
-    
+    style.configure('Saved.TButton', background="#6F8C53", foreground=HEADER_COLOR) # Style for saved feedback
+
+    # --- Main App Frame ---
     main_frame = ttk.Frame(root, padding=20)
     main_frame.pack(expand=True, fill="both")
-    main_frame.columnconfigure(0, weight=1)
-    main_frame.rowconfigure(3, weight=1)
+    main_frame.columnconfigure(0, weight=1); main_frame.rowconfigure(2, weight=1)
     
+    # --- Animated Header ---
     header_font = tkFont(family=font_family, size=18, weight='bold')
     header_text = "Pixel Blade Chest Opener"
     header_canvas = tk.Canvas(main_frame, height=header_font.metrics('linespace'), bg=BG_COLOR, highlightthickness=0)
@@ -373,6 +353,7 @@ def create_gui():
     rainbow_canvas = tk.Canvas(main_frame, height=4, bg=BG_COLOR, highlightthickness=0)
     rainbow_canvas.grid(row=1, column=0, sticky="ew", pady=(0, 20))
     
+    # --- Controls ---
     controls_frame = ttk.LabelFrame(main_frame, text="Controls", padding=15)
     controls_frame.grid(row=2, column=0, sticky="ew", pady=(0, 15))
     controls_frame.columnconfigure((0, 1), weight=1)
@@ -383,6 +364,7 @@ def create_gui():
     admin_warning = ttk.Label(controls_frame, text="Tip: If clicks don't register, right-click this script and 'Run as administrator'.", wraplength=500, justify='center', style='SubHeader.TLabel')
     admin_warning.grid(row=1, column=0, columnspan=2, pady=(15, 5))
 
+    # --- Content Area ---
     content_frame = ttk.Frame(main_frame)
     content_frame.grid(row=3, column=0, sticky="nsew")
     content_frame.columnconfigure(1, weight=1)
@@ -390,54 +372,45 @@ def create_gui():
 
     config_frame = ttk.LabelFrame(content_frame, text="Configuration", padding=(15, 10))
     config_frame.grid(row=0, column=0, sticky="ns")
-    config_frame.columnconfigure(0, weight=1)
+    config_frame.columnconfigure(1, weight=1)
     
     debug_frame = ttk.LabelFrame(content_frame, text="Live Console", padding=(10, 5))
     debug_frame.grid(row=0, column=1, sticky="nsew", padx=15)
     debug_frame.columnconfigure(0, weight=1)
     debug_frame.rowconfigure(1, weight=1)
     
-    info_label = ttk.Label(debug_frame, text="X:    0, Y:    0  |  RGB: (  0,  0,  0)", font=("Consolas", 10), justify='center')
+    info_label = ttk.Label(debug_frame, text="X:    0, Y:    0  |  RGB: (  0,  0,  0)", font=("Consolas", 10), anchor='center')
     info_label.grid(row=0, column=0, sticky='ew', pady=(0,5))
     debug_output = tk.Text(debug_frame, state=tk.DISABLED, background=ENTRY_BG, foreground=TEXT_COLOR, relief=tk.FLAT, font=("Consolas", 9), wrap=tk.WORD, borderwidth=0, highlightthickness=0)
     debug_output.grid(row=1, column=0, sticky="nsew")
     
+    # --- Configuration Widgets ---
     all_set_buttons = []
     config_entries = {}
-    
     row=0
-    # Single Chest Slot
-    btn_style = 'Accent0.TButton'
-    ttk.Label(config_frame, text="Chest Slot", font=(font_family, 10, 'bold')).grid(row=row, column=0, sticky="w", pady=(10, 2))
-    chest_slot_entry = tk.Entry(config_frame, bg=ENTRY_BG, fg=TEXT_COLOR, relief='flat', font=(font_family, 10), width=15, insertbackground=TEXT_COLOR)
-    chest_slot_entry.grid(row=row+1, column=0, sticky="ew", pady=(0, 5))
-    chest_slot_entry.insert(0, f"({CONFIG['chest_slot']['x']}, {CONFIG['chest_slot']['y']})")
-    button = ttk.Button(config_frame, text="Set", style=btn_style, width=5)
-    button.config(command=lambda e=chest_slot_entry, b=button, s=btn_style, k="chest_slot": set_capture_target(e, b, s, k))
-    button.grid(row=row+1, column=1, padx=(10,0), pady=(0, 5))
-    all_set_buttons.append(button)
-    row += 2
-        
-    # Other settings
-    setting_map = {"Open Button": "open_button", "Opening Click Pos": "opening_click_pos"}
-    for i, (label_text, key) in enumerate(setting_map.items()):
-        btn_style = f'Accent{i+1}.TButton'
-        ttk.Label(config_frame, text=label_text, font=(font_family, 10, 'bold')).grid(row=row, column=0, sticky="w", pady=(10,2))
-        entry = tk.Entry(config_frame, bg=ENTRY_BG, fg=TEXT_COLOR, relief='flat', font=(font_family, 10), width=15, insertbackground=TEXT_COLOR)
+    
+    def create_coord_entry(parent, label_text, key, accent_index):
+        nonlocal row
+        btn_style = f'Accent{accent_index}.TButton'
+        ttk.Label(parent, text=label_text, font=(font_family, 10, 'bold')).grid(row=row, column=0, sticky="w", pady=(10, 2))
+        entry = tk.Entry(parent, bg=ENTRY_BG, fg=TEXT_COLOR, relief='flat', font=(font_family, 10), width=15, insertbackground=TEXT_COLOR)
         entry.grid(row=row+1, column=0, sticky="ew", pady=(0, 5))
         entry.insert(0, f"({CONFIG[key]['x']}, {CONFIG[key]['y']})")
-        button = ttk.Button(config_frame, text="Set", style=btn_style, width=5)
+        button = ttk.Button(parent, text="Set", style=btn_style, width=5)
         button.config(command=lambda e=entry, b=button, s=btn_style, k=key: set_capture_target(e, b, s, k))
         button.grid(row=row+1, column=1, padx=(10,0), pady=(0, 5))
         all_set_buttons.append(button)
-        config_entries[key] = entry
         row += 2
+        return entry
 
-    # Sliders
+    chest_slot_entry = create_coord_entry(config_frame, "Chest Slot", "chest_slot", 0)
+    config_entries['open_button'] = create_coord_entry(config_frame, "Open Button", "open_button", 1)
+    config_entries['opening_click_pos'] = create_coord_entry(config_frame, "Opening Click Pos", "opening_click_pos", 2)
+
+    # --- Sliders ---
     duration_label_val = tk.StringVar(value=f'{CONFIG["opening_duration"]:.1f}s')
     ttk.Label(config_frame, text="Opening Duration", font=(font_family, 10, 'bold')).grid(row=row, column=0, columnspan=2, sticky="w", pady=(10,2))
-    duration_slider = ttk.Scale(config_frame, from_=1, to=15, orient='horizontal', style="Horizontal.TScale", command=lambda v: duration_label_val.set(f'{float(v):.1f}s'))
-    duration_slider.set(CONFIG["opening_duration"])
+    duration_slider = CustomSlider(config_frame, from_=1, to=15, initial_value=CONFIG["opening_duration"], height=20, bg=BG_COLOR, highlightthickness=0, command=lambda v: duration_label_val.set(f'{float(v):.1f}s'))
     duration_slider.grid(row=row+1, column=0, columnspan=2, sticky="ew")
     ttk.Label(config_frame, textvariable=duration_label_val, font=(font_family, 9, 'italic')).grid(row=row, column=1, sticky="e", pady=(10,2))
     row += 2
@@ -445,8 +418,7 @@ def create_gui():
     interval_label_val = tk.StringVar(value=f'{CONFIG["opening_click_interval"]:.2f}s')
     ttk.Label(config_frame, text="Opening Click Interval", font=(font_family, 10, 'bold')).grid(row=row, column=0, columnspan=2, sticky="w", pady=(10,2))
     ttk.Label(config_frame, textvariable=interval_label_val, font=(font_family, 9, 'italic')).grid(row=row, column=1, sticky="e", pady=(10,2))
-    interval_slider = ttk.Scale(config_frame, from_=0.01, to=1.0, orient='horizontal', style="Horizontal.TScale", command=lambda v: interval_label_val.set(f'{float(v):.2f}s'))
-    interval_slider.set(CONFIG["opening_click_interval"])
+    interval_slider = CustomSlider(config_frame, from_=0.01, to=1.0, initial_value=CONFIG["opening_click_interval"], height=20, bg=BG_COLOR, highlightthickness=0, command=lambda v: interval_label_val.set(f'{float(v):.2f}s'))
     interval_slider.grid(row=row+1, column=0, columnspan=2, sticky="ew")
     row += 2
 
@@ -455,7 +427,7 @@ def create_gui():
 
     keyboard.add_hotkey('f6', toggle_automation)
     
-    smooth_gradient_colors = create_smooth_gradient(DULL_RAINBOW, steps_per_transition=30)
+    smooth_gradient_colors = create_smooth_gradient(DULL_RAINBOW, 30)
     animation_thread = threading.Thread(target=animate_gradient_thread, args=(rainbow_canvas, header_canvas, header_font, header_text, smooth_gradient_colors), daemon=True)
     animation_thread.start()
     
@@ -463,10 +435,8 @@ def create_gui():
     finder_thread.start()
     
     def on_closing():
-        global is_animating
-        is_animating = False
-        stop_automation()
-        root.destroy()
+        global is_animating; is_animating = False
+        stop_automation(); root.destroy()
     root.protocol("WM_DELETE_WINDOW", on_closing)
     root.mainloop()
 
