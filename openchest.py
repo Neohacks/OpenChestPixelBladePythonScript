@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk
 import threading
 import time
 import pyautogui
@@ -15,47 +15,29 @@ from tkinter.font import Font as tkFont
 try:
     import pygetwindow as gw
 except ImportError:
-    messagebox.showerror("Missing Library", "The 'pygetwindow' library is required.\nPlease install it by running: pip install pygetwindow")
+    # Use a basic Tkinter window for the error if ttk isn't ready
+    root = tk.Tk(); root.withdraw()
+    tk.messagebox.showerror("Missing Library", "The 'pygetwindow' library is required.\nPlease install it by running: pip install pygetwindow")
     exit()
-
 try:
     import win32api, win32con
 except ImportError:
-    messagebox.showerror("Missing Library", "The 'pywin32' library is required.\nPlease install it by running: pip install pywin32")
+    root = tk.Tk(); root.withdraw()
+    tk.messagebox.showerror("Missing Library", "The 'pywin32' library is required.\nPlease install it by running: pip install pywin32")
     exit()
 
 # --- CTYPES Structure Definitions for SendInput ---
-# Define the pointer type first
 PUL = ctypes.POINTER(ctypes.c_ulong)
-
 class KeyBdInput(ctypes.Structure):
-    _fields_ = [("wVk", ctypes.c_ushort), 
-                ("wScan", ctypes.c_ushort), 
-                ("dwFlags", ctypes.c_ulong), 
-                ("time", ctypes.c_ulong), 
-                ("dwExtraInfo", PUL)]
-
+    _fields_ = [("wVk", ctypes.c_ushort), ("wScan", ctypes.c_ushort), ("dwFlags", ctypes.c_ulong), ("time", ctypes.c_ulong), ("dwExtraInfo", PUL)]
 class HardwareInput(ctypes.Structure):
-    _fields_ = [("uMsg", ctypes.c_ulong), 
-                ("wParamL", ctypes.c_short), 
-                ("wParamH", ctypes.c_ushort)]
-
+    _fields_ = [("uMsg", ctypes.c_ulong), ("wParamL", ctypes.c_short), ("wParamH", ctypes.c_ushort)]
 class MouseInput(ctypes.Structure):
-    _fields_ = [("dx", ctypes.c_long), 
-                ("dy", ctypes.c_long), 
-                ("mouseData", ctypes.c_ulong), 
-                ("dwFlags", ctypes.c_ulong), 
-                ("time", ctypes.c_ulong), 
-                ("dwExtraInfo", PUL)]
-
+    _fields_ = [("dx", ctypes.c_long), ("dy", ctypes.c_long), ("mouseData", ctypes.c_ulong), ("dwFlags", ctypes.c_ulong), ("time", ctypes.c_ulong), ("dwExtraInfo", PUL)]
 class Input_I(ctypes.Union):
-    _fields_ = [("ki", KeyBdInput), 
-                ("mi", MouseInput), 
-                ("hi", HardwareInput)]
-
+    _fields_ = [("ki", KeyBdInput), ("mi", MouseInput), ("hi", HardwareInput)]
 class Input(ctypes.Structure):
-    _fields_ = [("type", ctypes.c_ulong), 
-                ("ii", Input_I)]
+    _fields_ = [("type", ctypes.c_ulong), ("ii", Input_I)]
 
 # --- File Path for Configuration (Ensures Portability) ---
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -84,20 +66,15 @@ class CustomSlider(tk.Canvas):
         self.to_ = to
         self.command = command
         self.value = initial_value
-        
         self.bind("<Configure>", self._draw)
         self.bind("<B1-Motion>", self._on_drag)
         self.bind("<Button-1>", self._on_drag)
-
         self.set(initial_value)
 
     def _draw(self, event=None):
         self.delete("all")
-        width = self.winfo_width()
-        height = self.winfo_height()
-        
+        width, height = self.winfo_width(), self.winfo_height()
         self.create_rectangle(5, height/2 - 3, width - 5, height/2 + 3, fill="#313335", outline="")
-        
         pos = self._value_to_pos(self.value)
         self.create_oval(pos-6, height/2-6, pos+6, height/2+6, fill="#A9B7C6", outline="#E8E8E8", width=1)
 
@@ -105,57 +82,62 @@ class CustomSlider(tk.Canvas):
         pos = max(5, min(event.x, self.winfo_width() - 5))
         self.value = self._pos_to_value(pos)
         self._draw()
-        if self.command:
-            self.command(self.value)
+        if self.command: self.command(self.value)
     
     def _value_to_pos(self, value):
-        width = self.winfo_width() - 10
-        percentage = (value - self.from_) / (self.to_ - self.from_)
-        return 5 + percentage * width
+        return 5 + ((value - self.from_) / (self.to_ - self.from_)) * (self.winfo_width() - 10)
 
     def _pos_to_value(self, pos):
-        width = self.winfo_width() - 10
-        percentage = (pos - 5) / width
-        return self.from_ + percentage * (self.to_ - self.from_)
+        return self.from_ + ((pos - 5) / (self.winfo_width() - 10)) * (self.to_ - self.from_)
 
-    def get(self):
-        return self.value
+    def get(self): return self.value
+    def set(self, value): self.value = value; self._draw()
+        
+class CustomMessagebox(tk.Toplevel):
+    def __init__(self, parent, title, message, alert_type="info"):
+        super().__init__(parent)
+        BG_COLOR, FRAME_COLOR, TEXT_COLOR = "#2B2B2B", "#3C3F41", "#A9B7C6"
+        self.overrideredirect(True)
+        self.config(bg=BG_COLOR, highlightbackground=FRAME_COLOR, highlightthickness=1)
+        parent_x, parent_y = parent.winfo_x(), parent.winfo_y()
+        parent_width, parent_height = parent.winfo_width(), parent.winfo_height()
+        self.geometry(f"350x150+{parent_x + (parent_width // 2) - 175}+{parent_y + (parent_height // 2) - 75}")
+        self.transient(parent); self.grab_set()
 
-    def set(self, value):
-        self.value = value
-        self._draw()
+        main_frame = ttk.Frame(self, padding=20); main_frame.pack(expand=True, fill="both")
+        def move_window(event): self.geometry(f'+{self.winfo_x() + event.x - self._offsetx}+{self.winfo_y() + event.y - self._offsety}')
+        def click_window(event): self._offsetx, self._offsety = event.x, event.y
+        main_frame.bind('<ButtonPress-1>', click_window); main_frame.bind('<B1-Motion>', move_window)
+        
+        message_frame = ttk.Frame(main_frame); message_frame.pack(expand=True, fill="both")
+        icon_color = "#3399FF" if alert_type == "info" else "#FFCC00" if alert_type == "warning" else "#FF3333"
+        ttk.Label(message_frame, text="i" if alert_type == "info" else "!", font=("Segoe UI", 24, 'bold'), foreground=icon_color).pack(side="left", padx=(0, 15))
+        ttk.Label(message_frame, text=message, wraplength=250, justify="left").pack(side="left", expand=True, fill="both")
+        button_frame = ttk.Frame(main_frame, padding=(0, 10, 0, 0)); button_frame.pack(fill="x")
+        ttk.Button(button_frame, text="OK", command=self.destroy, style="Accent4.TButton").pack()
 
 # --- UI and Thread Management ---
 def log_debug(message):
     def append_message():
         if 'debug_output' in globals() and debug_output.winfo_exists():
             debug_output.config(state=tk.NORMAL)
-            timestamp = time.strftime("%H:%M:%S")
-            debug_output.insert(tk.END, f"[{timestamp}] {message}\n")
-            debug_output.config(state=tk.DISABLED)
-            debug_output.see(tk.END)
-    if 'root' in globals() and root.winfo_exists():
-        root.after(0, append_message)
+            debug_output.insert(tk.END, f"[{time.strftime('%H:%M:%S')}] {message}\n")
+            debug_output.config(state=tk.DISABLED); debug_output.see(tk.END)
+    if 'root' in globals() and root.winfo_exists(): root.after(0, append_message)
 
 def move_and_click(x, y, is_spam=False):
     rand_x, rand_y = x + random.randint(-3, 3), y + random.randint(-3, 3)
     if not is_spam: log_debug(f"Clicking at ({rand_x}, {rand_y})")
-    
-    move_duration = 0.05 if is_spam else random.uniform(0.1, 0.2)
-    pyautogui.moveTo(rand_x, rand_y, duration=move_duration)
-    
+    pyautogui.moveTo(rand_x, rand_y, duration=0.05 if is_spam else random.uniform(0.1, 0.2))
     F_ABSOLUTE, F_MOVE, F_LEFTDOWN, F_LEFTUP = 0x8000, 0x0001, 0x0002, 0x0004
     screen_width, screen_height = win32api.GetSystemMetrics(0), win32api.GetSystemMetrics(1)
     nx, ny = int(rand_x * (65535 / screen_width)), int(rand_y * (65535 / screen_height))
-
     inp_down = Input_I(); inp_down.mi = MouseInput(nx, ny, 0, (F_ABSOLUTE | F_MOVE | F_LEFTDOWN), 0, None)
-    command_down = Input(ctypes.c_ulong(0), inp_down)
+    inp_up = Input_I(); inp_up.mi = MouseInput(nx, ny, 0, (F_ABSOLUTE | F_MOVE | F_LEFTUP), 0, None)
+    command_down = Input(ctypes.c_ulong(0), inp_down); command_up = Input(ctypes.c_ulong(0), inp_up)
     ctypes.windll.user32.SendInput(1, ctypes.pointer(command_down), ctypes.sizeof(command_down))
     time.sleep(random.uniform(0.02, 0.04)) 
-    inp_up = Input_I(); inp_up.mi = MouseInput(nx, ny, 0, (F_ABSOLUTE | F_MOVE | F_LEFTUP), 0, None)
-    command_up = Input(ctypes.c_ulong(0), inp_up)
     ctypes.windll.user32.SendInput(1, ctypes.pointer(command_up), ctypes.sizeof(command_up))
-    
     if not is_spam: time.sleep(random.uniform(0.1, 0.15))
 
 # --- Automation Logic ---
@@ -165,49 +147,39 @@ def automation_loop():
     time.sleep(2)
     while is_running:
         try:
-            roblox_win = gw.getWindowsWithTitle('Roblox')
-            if not roblox_win:
-                log_debug("Roblox window not found. Pausing...")
-                time.sleep(3)
-                continue
-            roblox_win = roblox_win[0]
+            if not gw.getWindowsWithTitle('Roblox'):
+                log_debug("Roblox window not found. Pausing..."); time.sleep(3); continue
             slot = CONFIG["chest_slot"]
             if slot['x'] == 0 and slot['y'] == 0:
-                log_debug("Chest Slot is not configured. Pausing...")
-                time.sleep(5)
-                continue
-            log_debug(f"Attempting to open chest at ({slot['x']}, {slot['y']}).")
-            move_and_click(slot['x'], slot['y'])
-            time.sleep(random.uniform(0.4, 0.6))
+                log_debug("Chest Slot is not configured. Pausing..."); time.sleep(5); continue
+            
+            log_debug(f"Opening chest at ({slot['x']}, {slot['y']}).")
+            move_and_click(slot['x'], slot['y']); time.sleep(random.uniform(0.4, 0.6))
             log_debug(f"Clicking 'Open' button at ({CONFIG['open_button']['x']}, {CONFIG['open_button']['y']}).")
-            move_and_click(CONFIG["open_button"]['x'], CONFIG["open_button"]['y'])
-            time.sleep(random.uniform(0.8, 1.0))
+            move_and_click(CONFIG["open_button"]['x'], CONFIG["open_button"]['y']); time.sleep(random.uniform(0.8, 1.0))
+            
             log_debug("Spam-clicking chest to open...")
-            open_pos = CONFIG["opening_click_pos"]
-            start_time = time.time()
+            open_pos = CONFIG["opening_click_pos"]; start_time = time.time()
             while time.time() - start_time < CONFIG["opening_duration"]:
                 if not is_running: break
-                move_and_click(open_pos['x'], open_pos['y'], is_spam=True) 
-                time.sleep(CONFIG["opening_click_interval"])
-            log_debug("Chest sequence complete. Waiting before next cycle.")
-            time.sleep(random.uniform(1.2, 1.5))
+                move_and_click(open_pos['x'], open_pos['y'], is_spam=True); time.sleep(CONFIG["opening_click_interval"])
+            
+            log_debug("Chest sequence complete. Waiting before next cycle."); time.sleep(random.uniform(1.2, 1.5))
         except Exception as e:
-            log_debug(f"ERROR: {e}")
-            stop_automation()
-            messagebox.showerror("Error", f"Script stopped: {e}")
+            log_debug(f"ERROR: {e}"); stop_automation()
+            CustomMessagebox(root, "Error", f"Script stopped: {e}", alert_type="error")
             break
     if not is_running: log_debug("Automation stopped by user.")
 
+# --- UI LOGIC AND MANAGEMENT ---
 def start_automation():
     global is_running, script_thread
     if CONFIG["chest_slot"]['x'] == 0 or CONFIG["open_button"]['x'] == 0 or CONFIG["opening_click_pos"]['x'] == 0:
-        messagebox.showwarning("Configuration Incomplete", "Please set all required positions.")
+        CustomMessagebox(root, "Configuration Incomplete", "Please set all required positions.", alert_type="warning")
         return
     if not is_running:
-        is_running = True
-        script_thread = threading.Thread(target=automation_loop, daemon=True)
-        script_thread.start()
-        update_ui_state()
+        is_running = True; script_thread = threading.Thread(target=automation_loop, daemon=True)
+        script_thread.start(); update_ui_state()
 
 def stop_automation():
     global is_running
@@ -232,20 +204,11 @@ def save_config():
             if len(coords) == 2: CONFIG[key] = {"x": coords[0], "y": coords[1]}
         CONFIG["opening_duration"] = duration_slider.get()
         CONFIG["opening_click_interval"] = interval_slider.get()
-        
         with open(CONFIG_FILE_PATH, "w") as f: json.dump(CONFIG, f, indent=4)
-        
-        # Feedback mechanism
         original_text = save_button['text']
-        save_button.config(text="✓ Saved!", style="Saved.TButton")
-        save_button.config(state=tk.DISABLED)
-        root.after(1500, lambda: (
-            save_button.config(text=original_text, style="Accent5.TButton"),
-            save_button.config(state=tk.NORMAL)
-        ))
-        
-    except Exception as e: 
-        messagebox.showerror("Error", f"Failed to save config: {e}")
+        save_button.config(text="✓ Saved!", style="Saved.TButton", state=tk.DISABLED)
+        root.after(1500, lambda: (save_button.config(text=original_text, style="Accent5.TButton", state=tk.NORMAL)))
+    except Exception as e: CustomMessagebox(root, "Error", f"Failed to save config: {e}", alert_type="error")
 
 def load_config():
     global CONFIG
@@ -253,18 +216,15 @@ def load_config():
         try:
             with open(CONFIG_FILE_PATH, "r") as f: loaded_config = json.load(f)
             for key, value in CONFIG.items(): CONFIG[key] = loaded_config.get(key, value)
-        except json.JSONDecodeError: 
-            messagebox.showerror("Config Error", "config.json is corrupted. Using defaults.")
+        except json.JSONDecodeError: CustomMessagebox(root, "Config Error", "config.json is corrupted. Using defaults.", alert_type="error")
 
 def on_capture_click(event):
     global capture_target, all_set_buttons
     event.widget.destroy() 
     if capture_target:
         x, y = event.x_root, event.y_root
-        text_val = f"({x}, {y})"
         CONFIG[capture_target["key"]] = {"x": x, "y": y}
-        capture_target["widget"].delete(0, tk.END)
-        capture_target["widget"].insert(0, text_val)
+        capture_target["widget"].delete(0, tk.END); capture_target["widget"].insert(0, f"({x}, {y})")
         capture_target["button"].config(style=capture_target["original_style"])
         for btn in all_set_buttons: btn.config(state=tk.NORMAL)
         capture_target = None
@@ -283,14 +243,14 @@ def set_capture_target(target_widget, button, original_style, key):
     capture_window.bind("<Button-1>", on_capture_click)
     capture_window.bind("<Escape>", lambda e: (e.widget.destroy(), root.deiconify(), button.config(style=original_style), [btn.config(state=tk.NORMAL) for btn in all_set_buttons]))
 
-# --- RESTORED Rainbow Animation System ---
-def create_smooth_gradient(colors, steps_per_transition):
+# --- Animated Gradient Logic ---
+def create_smooth_gradient(colors, steps):
     gradient = []; extended_colors = colors + [colors[0]]
     for i in range(len(extended_colors) - 1):
         c1, c2 = extended_colors[i], extended_colors[i+1]
         r1, g1, b1, r2, g2, b2 = int(c1[1:3],16), int(c1[3:5],16), int(c1[5:7],16), int(c2[1:3],16), int(c2[3:5],16), int(c2[5:7],16)
-        for j in range(steps_per_transition):
-            p = j/steps_per_transition; r,g,b = int(r1*(1-p)+r2*p), int(g1*(1-p)+g2*p), int(b1*(1-p)+b2*p)
+        for j in range(steps):
+            p = j/steps; r,g,b = int(r1*(1-p)+r2*p), int(g1*(1-p)+g2*p), int(b1*(1-p)+b2*p)
             gradient.append(f'#{r:02x}{g:02x}{b:02x}')
     return gradient
 
@@ -299,37 +259,27 @@ def animate_gradient_thread(bar_canvas, header_canvas, header_font, header_text,
     while is_animating:
         try:
             color_deque.rotate(-1); current_colors = list(color_deque)
-            # Use root.after for thread-safe UI updates
-            if 'root' in globals() and root.winfo_exists():
-                root.after(0, update_animations, bar_canvas, header_canvas, header_font, header_text, current_colors)
+            for canvas in [bar_canvas, header_canvas]:
+                if canvas.winfo_exists(): root.after(0, update_animations, bar_canvas, header_canvas, header_font, header_text, current_colors)
             time.sleep(0.05)
         except Exception: break
 
 def update_animations(bar_canvas, header_canvas, header_font, header_text, colors):
-    try:
-        # Update rainbow bar canvas
-        if bar_canvas.winfo_exists():
-            bar_canvas.delete("all")
-            width, height = bar_canvas.winfo_width(), bar_canvas.winfo_height()
-            if width > 1:
-                for i, color in enumerate(colors):
-                    x0, x1 = i * (width/len(colors)), (i+1) * (width/len(colors))
-                    bar_canvas.create_rectangle(x0, 0, x1, height, fill=color, outline="")
-        
-        # Update header text animation
-        if header_canvas.winfo_exists():
-            header_canvas.delete("all")
-            header_width, header_height = header_canvas.winfo_width(), header_canvas.winfo_height()
-            if header_width > 1:
-                text_width = header_font.measure(header_text)
-                x_start, y_center = (header_width - text_width) / 2, header_height / 2
-                char_colors = deque(colors)
-                for char in header_text:
-                    char_width = header_font.measure(char)
-                    header_canvas.create_text(x_start, y_center, text=char, fill=char_colors[0], font=header_font, anchor='w')
-                    x_start += char_width; char_colors.rotate(-4)
-    except Exception:
-        pass
+    for canvas in [bar_canvas, header_canvas]: canvas.delete("all")
+    width, height = bar_canvas.winfo_width(), bar_canvas.winfo_height()
+    if width > 1:
+        for i, color in enumerate(colors):
+            x0, x1 = i * (width/len(colors)), (i+1) * (width/len(colors))
+            bar_canvas.create_rectangle(x0, 0, x1, height, fill=color, outline="")
+    header_width, header_height = header_canvas.winfo_width(), header_canvas.winfo_height()
+    if header_width > 1:
+        text_width = header_font.measure(header_text)
+        x_start, y_center = (header_width - text_width) / 2, header_height / 2
+        char_colors = deque(colors)
+        for char in header_text:
+            char_width = header_font.measure(char)
+            header_canvas.create_text(x_start, y_center, text=char, fill=char_colors[0], font=header_font, anchor='w')
+            x_start += char_width; char_colors.rotate(-4) 
 
 def finder_loop(label):
     while is_animating:
@@ -346,15 +296,7 @@ def create_gui():
     load_config()
     root = tk.Tk()
     root.title("Pixel Blade Chest Opener")
-    
-    # --- Window Management Fixes (Keeping the working fixes) ---
-    root.geometry("680x780")
-    root.resizable(False, False)
-    root.wm_attributes("-toolwindow", False)  # Ensure taskbar visibility
-    root.attributes('-alpha', 1.0)  # Ensure window opacity
-    root.lift()  # Bring window to front
-    root.attributes('-topmost', True)  # Temporarily force to front
-    root.after(100, lambda: root.attributes('-topmost', False))  # Release after position
+    root.geometry("620x720"); root.resizable(False, False)
     
     # --- Theme ---
     BG_COLOR, FRAME_COLOR, TEXT_COLOR, ENTRY_BG, HEADER_COLOR = "#2B2B2B", "#3C3F41", "#A9B7C6", "#313335", "#CCCCCC"
@@ -377,13 +319,13 @@ def create_gui():
         style.configure(f'Accent{i}.TButton', background=color, foreground=HEADER_COLOR)
         style.map(f'Accent{i}.TButton', background=[('active', TEXT_COLOR)])
     style.configure('Saved.TButton', background="#6F8C53", foreground=HEADER_COLOR)
-    
+
     # --- Main App Frame ---
     main_frame = ttk.Frame(root, padding=20)
     main_frame.pack(expand=True, fill="both")
     main_frame.columnconfigure(0, weight=1); main_frame.rowconfigure(2, weight=1)
     
-    # --- Animated Header (Restored) ---
+    # --- Animated Header ---
     header_font = tkFont(family=font_family, size=18, weight='bold')
     header_text = "Pixel Blade Chest Opener"
     header_canvas = tk.Canvas(main_frame, height=header_font.metrics('linespace'), bg=BG_COLOR, highlightthickness=0)
@@ -400,13 +342,14 @@ def create_gui():
     start_button.grid(row=0, column=0, sticky="ew", padx=5)
     stop_button = ttk.Button(controls_frame, text="STOP (F6)", command=stop_automation, state=tk.DISABLED, style='Accent0.TButton')
     stop_button.grid(row=0, column=1, sticky="ew", padx=5)
-    admin_warning = ttk.Label(controls_frame, text="Tip: If clicks don't register, right-click this script and 'Run as administrator'.", wraplength=500, justify='center', style='SubHeader.TLabel')
+    admin_warning = ttk.Label(controls_frame, text="Tip: If clicks don't register, right-click script and 'Run as administrator'.", wraplength=500, justify='center', style='SubHeader.TLabel')
     admin_warning.grid(row=1, column=0, columnspan=2, pady=(15, 5))
 
     # --- Content Area ---
     content_frame = ttk.Frame(main_frame)
     content_frame.grid(row=3, column=0, sticky="nsew")
-    content_frame.columnconfigure(1, weight=1)
+    content_frame.columnconfigure(1, weight=3) # Give more space to console
+    content_frame.columnconfigure(0, weight=2) # Give less space to config
     content_frame.rowconfigure(0, weight=1)
 
     config_frame = ttk.LabelFrame(content_frame, text="Configuration", padding=(15, 10))
@@ -415,8 +358,7 @@ def create_gui():
     
     debug_frame = ttk.LabelFrame(content_frame, text="Live Console", padding=(10, 5))
     debug_frame.grid(row=0, column=1, sticky="nsew", padx=15)
-    debug_frame.columnconfigure(0, weight=1)
-    debug_frame.rowconfigure(1, weight=1)
+    debug_frame.columnconfigure(0, weight=1); debug_frame.rowconfigure(1, weight=1)
     
     info_label = ttk.Label(debug_frame, text="X:    0, Y:    0  |  RGB: (  0,  0,  0)", font=("Consolas", 10), anchor='center')
     info_label.grid(row=0, column=0, sticky='ew', pady=(0,5))
@@ -424,9 +366,7 @@ def create_gui():
     debug_output.grid(row=1, column=0, sticky="nsew")
     
     # --- Configuration Widgets ---
-    all_set_buttons = []
-    config_entries = {}
-    row=0
+    all_set_buttons, config_entries, row = [], {}, 0
     
     def create_coord_entry(parent, label_text, key, accent_index):
         nonlocal row
@@ -466,7 +406,6 @@ def create_gui():
 
     keyboard.add_hotkey('f6', toggle_automation)
     
-    # --- RESTORED Animation System ---
     smooth_gradient_colors = create_smooth_gradient(DULL_RAINBOW, 30)
     animation_thread = threading.Thread(target=animate_gradient_thread, args=(rainbow_canvas, header_canvas, header_font, header_text, smooth_gradient_colors), daemon=True)
     animation_thread.start()
@@ -476,8 +415,7 @@ def create_gui():
     
     def on_closing():
         global is_animating; is_animating = False
-        stop_automation()
-        root.destroy()
+        stop_automation(); root.destroy()
     root.protocol("WM_DELETE_WINDOW", on_closing)
     root.mainloop()
 
