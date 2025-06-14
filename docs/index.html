@@ -12,7 +12,7 @@
         body {
             font-family: 'Inter', sans-serif;
             background-color: #1A1A1A; /* Darker background */
-            color: #9E9E9E; /* Softer text color */
+            color: #9E9E9E; /* Base text color */
         }
         .gradient-text {
             background-clip: text;
@@ -26,12 +26,12 @@
             transform: translateY(-2px);
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
         }
-        .feature-card {
+        .feature-card, .instruction-card {
             background-color: #2C2C2C; /* Darker cards */
             border: 1px solid #424242;
             transition: all 0.3s ease;
         }
-        .feature-card:hover {
+        .feature-card:hover, .instruction-card:hover {
             transform: translateY(-4px);
             border-color: #5a7042;
         }
@@ -47,9 +47,9 @@
                 Pixel Blade Chest Opener
             </h1>
             <canvas id="rainbow-bar" class="w-full h-1.5 mt-4 rounded-full"></canvas>
-            <p class="mt-6 max-w-2xl mx-auto text-lg text-gray-400">
+            <div class="mt-6 max-w-3xl mx-auto text-lg text-gray-400 bg-black/20 p-6 rounded-xl border border-gray-800">
                 A sophisticated automation tool with a polished GUI for opening chests in the Roblox game *Pixel Blade*.
-            </p>
+            </div>
         </header>
 
         <!-- Main Content Area -->
@@ -60,7 +60,7 @@
                 <div class="mt-8">
                      <!-- Download link updated -->
                     <a id="download-button" href="https://github.com/Neohacks/OpenChestPixelBladePythonScript/tree/main" 
-                       class="btn-accent inline-block text-white font-bold rounded-lg px-10 py-5 text-xl">
+                       class="btn-accent inline-block text-gray-300 font-bold rounded-lg px-10 py-5 text-xl">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 inline-block mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
@@ -71,65 +71,69 @@
 
             <!-- Features Section -->
             <section class="mt-24">
-                <h2 class="text-3xl font-bold text-center text-gray-200">Key Features</h2>
+                <h2 class="text-4xl font-bold text-center text-gray-300 tracking-tight">Key Features</h2>
                 <div class="mt-12 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                     <!-- Feature 1 -->
                     <div class="feature-card rounded-lg p-6 text-center">
-                        <div class="flex items-center justify-center h-12 w-12 rounded-md text-white mx-auto" style="background-color: #6e4545;">
+                        <div class="flex items-center justify-center h-12 w-12 rounded-md text-gray-300 mx-auto" style="background-color: #6e4545;">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 16v-2m-6.364-1.636L7.05 17.55m11.314-2.828l-1.414-1.414M4 12H2m18 0h-2m-1.636-6.364L16.95 7.05m-2.828 11.314l-1.414 1.414M12 18a6 6 0 100-12 6 6 0 000 12z" /></svg>
                         </div>
-                        <h3 class="mt-5 text-lg font-medium text-gray-200">Polished UI</h3>
-                        <p class="mt-2 text-base text-gray-400">A modern dark-themed UI with an animated rainbow gradient for a premium feel.</p>
+                        <h3 class="mt-5 text-lg font-medium text-gray-300">Polished UI</h3>
+                        <p class="mt-2 text-base text-gray-500">A modern dark-themed UI with an animated rainbow gradient for a premium feel.</p>
                     </div>
                     <!-- Feature 2 -->
                     <div class="feature-card rounded-lg p-6 text-center">
-                        <div class="flex items-center justify-center h-12 w-12 rounded-md text-white mx-auto" style="background-color: #6e6e45;">
+                        <div class="flex items-center justify-center h-12 w-12 rounded-md text-gray-300 mx-auto" style="background-color: #6e6e45;">
                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.494v1.076c0 .816-.316 1.58-1.076 2.158l-5.618 4.494a2.5 2.5 0 01-3.232 0L2.458 9.734A2.5 2.5 0 011.382 7.58V6.506a2.5 2.5 0 012.5-2.5h16.236a2.5 2.5 0 012.5 2.5z" /></svg>
                         </div>
-                        <h3 class="mt-5 text-lg font-medium text-gray-200">Reliable Automation</h3>
-                        <p class="mt-2 text-base text-gray-400">Employs low-level `SendInput` API for hardware-like clicks that are harder for games to block.</p>
+                        <h3 class="mt-5 text-lg font-medium text-gray-300">Reliable Automation</h3>
+                        <p class="mt-2 text-base text-gray-500">Employs low-level `SendInput` API for hardware-like clicks that are harder for games to block.</p>
                     </div>
                     <!-- Feature 3 -->
                     <div class="feature-card rounded-lg p-6 text-center">
-                        <div class="flex items-center justify-center h-12 w-12 rounded-md text-white mx-auto" style="background-color: #456e6e;">
+                        <div class="flex items-center justify-center h-12 w-12 rounded-md text-gray-300 mx-auto" style="background-color: #456e6e;">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                         </div>
-                        <h3 class="mt-5 text-lg font-medium text-gray-200">One-Click Config</h3>
-                        <p class="mt-2 text-base text-gray-400">Interactively set all screen coordinates with a simple point-and-click process.</p>
+                        <h3 class="mt-5 text-lg font-medium text-gray-300">One-Click Config</h3>
+                        <p class="mt-2 text-base text-gray-500">Interactively set all screen coordinates with a simple point-and-click process.</p>
                     </div>
                 </div>
             </section>
             
             <!-- Installation & Usage Section -->
             <section class="mt-24">
-                <h2 class="text-3xl font-bold text-center text-gray-200">Installation & Usage</h2>
-                <div class="mt-12 max-w-3xl mx-auto space-y-8">
-                    <div class="flex items-start">
-                        <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full text-lg font-bold text-white" style="background-color: #61456e;">1</div>
-                        <div class="ml-4">
-                            <h3 class="text-lg font-medium text-gray-200">Download & Prepare</h3>
-                            <p class="mt-1 text-gray-400">Download the project files (`.py` and `.bat`) and place them together in a new folder.</p>
+                <h2 class="text-4xl font-bold text-center text-gray-300 tracking-tight">Installation & Usage</h2>
+                <div class="mt-12 max-w-4xl mx-auto grid gap-8 md:grid-cols-2">
+                    <!-- Step 1 -->
+                    <div class="instruction-card rounded-lg p-6 flex items-start space-x-4">
+                        <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full text-xl font-bold text-gray-300" style="background-color: #61456e;">1</div>
+                        <div>
+                            <h3 class="text-lg font-medium text-gray-300">Download & Prepare</h3>
+                            <p class="mt-1 text-gray-500">Download the project files (`.py` and `.bat`) and place them together in a new folder.</p>
                         </div>
                     </div>
-                    <div class="flex items-start">
-                        <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full text-lg font-bold text-white" style="background-color: #6e455f;">2</div>
-                        <div class="ml-4">
-                            <h3 class="text-lg font-medium text-gray-200">Run as Administrator</h3>
-                            <p class="mt-1 text-gray-400">Double-click `run.bat`. A UAC prompt will appear. **You must click "Yes"** for clicks to register in-game. The script will auto-install any missing libraries.</p>
+                    <!-- Step 2 -->
+                     <div class="instruction-card rounded-lg p-6 flex items-start space-x-4">
+                        <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full text-xl font-bold text-gray-300" style="background-color: #6e455f;">2</div>
+                        <div>
+                            <h3 class="text-lg font-medium text-gray-300">Run as Administrator</h3>
+                            <p class="mt-1 text-gray-500">Double-click `run.bat`. A UAC prompt will appear. **You must click "Yes"** for clicks to register. The script will auto-install any missing libraries.</p>
                         </div>
                     </div>
-                     <div class="flex items-start">
-                        <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full text-lg font-bold text-white" style="background-color: #6e4545;">3</div>
-                        <div class="ml-4">
-                            <h3 class="text-lg font-medium text-gray-200">Configure & Save</h3>
-                            <p class="mt-1 text-gray-400">Use the "Set" buttons to capture coordinates for each action. Adjust timings with the sliders, then click "Save Config".</p>
+                    <!-- Step 3 -->
+                    <div class="instruction-card rounded-lg p-6 flex items-start space-x-4">
+                        <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full text-xl font-bold text-gray-300" style="background-color: #6e4545;">3</div>
+                        <div>
+                            <h3 class="text-lg font-medium text-gray-300">Configure & Save</h3>
+                            <p class="mt-1 text-gray-500">Use the "Set" buttons to capture coordinates for each action. Adjust timings with the sliders, then click "Save Config".</p>
                         </div>
                     </div>
-                     <div class="flex items-start">
-                        <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full text-lg font-bold text-white" style="background-color: #5a7042;">4</div>
-                        <div class="ml-4">
-                            <h3 class="text-lg font-medium text-gray-200">Start the Bot</h3>
-                            <p class="mt-1 text-gray-400">Click the green **"START (F6)"** button or press the `F6` key to begin automation.</p>
+                    <!-- Step 4 -->
+                    <div class="instruction-card rounded-lg p-6 flex items-start space-x-4">
+                        <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full text-xl font-bold text-gray-300" style="background-color: #5a7042;">4</div>
+                        <div>
+                            <h3 class="text-lg font-medium text-gray-300">Start the Bot</h3>
+                            <p class="mt-1 text-gray-500">Click the green **"START (F6)"** button or press the `F6` key to begin automation.</p>
                         </div>
                     </div>
                 </div>
@@ -140,12 +144,8 @@
 
     <!-- Footer -->
     <footer class="mt-24 bg-black/50">
-        <div class="max-w-5xl mx-auto py-8 px-4 sm:px-6 lg:px-8 text-center text-gray-600">
-            <p>&copy; 2025 Pixel Blade Chest Opener. All Rights Reserved.</p>
-            <p class="mt-2">
-                 <!-- Link updated -->
-                <a href="https://github.com/Neohacks/OpenChestPixelBladePythonScript/tree/main" class="hover:text-gray-400 transition-colors">View on GitHub</a>
-            </p>
+        <div class="max-w-5xl mx-auto py-8 px-4 sm:px-6 lg:px-8 text-center text-gray-700">
+            <a href="https://github.com/Neohacks/OpenChestPixelBladePythonScript/tree/main" class="hover:text-gray-500 transition-colors">View on GitHub</a>
         </div>
     </footer>
 
