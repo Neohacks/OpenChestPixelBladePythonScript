@@ -11,8 +11,8 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #1A1A1A;
-            color: #9E9E9E;
+            background-color: #1A1A1A; /* Darker background */
+            color: #9E9E9E; /* Base text color */
         }
         .gradient-text {
             background-clip: text;
@@ -27,7 +27,7 @@
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
         }
         .feature-card, .instruction-card {
-            background-color: #2C2C2C;
+            background-color: #2C2C2C; /* Darker cards */
             border: 1px solid #424242;
             transition: all 0.3s ease;
         }
@@ -41,6 +41,7 @@
 
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
 
+        <!-- Header Section -->
         <header class="text-center">
             <h1 id="animated-header" class="gradient-text text-5xl md:text-6xl font-extrabold tracking-tight">
                 Pixel Blade Chest Opener
@@ -51,23 +52,28 @@
             </div>
         </header>
 
+        <!-- Main Content Area -->
         <main class="mt-16">
             
+            <!-- Download Button Section -->
             <section class="text-center">
                 <div class="mt-8">
-                    <a id="download-button" href="https://github.com/Neohacks/OpenChestPixelBladePythonScript/tree/main" 
+                     <!-- Download link updated -->
+                    <a id="download-button" href="https://github.com/Neohacks/OpenChestPixelBladePythonScript/releases/tag/v1.0.0" 
                        class="btn-accent inline-block text-gray-300 font-bold rounded-lg px-10 py-5 text-xl">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 inline-block mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
-                        Download Latest Version
+                        Download v1.0.0
                     </a>
                 </div>
             </section>
 
+            <!-- Features Section -->
             <section class="mt-24">
                 <h2 class="text-4xl font-bold text-center text-gray-300 tracking-tight">Key Features</h2>
                 <div class="mt-12 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                    <!-- Feature 1 -->
                     <div class="feature-card rounded-lg p-6 text-center">
                         <div class="flex items-center justify-center h-12 w-12 rounded-md text-gray-300 mx-auto" style="background-color: #6e4545;">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 16v-2m-6.364-1.636L7.05 17.55m11.314-2.828l-1.414-1.414M4 12H2m18 0h-2m-1.636-6.364L16.95 7.05m-2.828 11.314l-1.414 1.414M12 18a6 6 0 100-12 6 6 0 000 12z" /></svg>
@@ -75,6 +81,7 @@
                         <h3 class="mt-5 text-lg font-medium text-gray-300">Polished UI</h3>
                         <p class="mt-2 text-base text-gray-500">A modern dark-themed UI with an animated rainbow gradient for a premium feel.</p>
                     </div>
+                    <!-- Feature 2 -->
                     <div class="feature-card rounded-lg p-6 text-center">
                         <div class="flex items-center justify-center h-12 w-12 rounded-md text-gray-300 mx-auto" style="background-color: #6e6e45;">
                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.494v1.076c0 .816-.316 1.58-1.076 2.158l-5.618 4.494a2.5 2.5 0 01-3.232 0L2.458 9.734A2.5 2.5 0 011.382 7.58V6.506a2.5 2.5 0 012.5-2.5h16.236a2.5 2.5 0 012.5 2.5z" /></svg>
@@ -82,6 +89,7 @@
                         <h3 class="mt-5 text-lg font-medium text-gray-300">Reliable Automation</h3>
                         <p class="mt-2 text-base text-gray-500">Employs low-level `SendInput` API for hardware-like clicks that are harder for games to block.</p>
                     </div>
+                    <!-- Feature 3 -->
                     <div class="feature-card rounded-lg p-6 text-center">
                         <div class="flex items-center justify-center h-12 w-12 rounded-md text-gray-300 mx-auto" style="background-color: #456e6e;">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
@@ -135,7 +143,7 @@
                 <h3 class="text-lg font-semibold text-gray-400">Credits</h3>
                 <p class="text-gray-500">This project was a collaborative effort between <a href="https://github.com/Neohacks" class="text-gray-400 hover:text-gray-300">Neohacks</a> and Google's Gemini.</p>
             </div>
-            <a href="https://github.com/Neohacks/OpenChestPixelBladePythonScript/tree/main" class="hover:text-gray-500 transition-colors">View on GitHub</a>
+            <a href="https://github.com/Neohacks/OpenChestPixelBladePythonScript" class="hover:text-gray-500 transition-colors">View on GitHub</a>
         </div>
     </footer>
 
@@ -160,7 +168,7 @@
 
         const smoothGradient = createSmoothGradient(DULL_RAINBOW, 30);
         let gradientOffset = 0, lastTimestamp = 0;
-        const animationInterval = 100;
+        const animationInterval = 200; // Further slowed down animation
 
         function animateGradients(timestamp) {
             if (timestamp - lastTimestamp > animationInterval) {
