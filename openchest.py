@@ -214,7 +214,7 @@ def save_config():
         
         with open(CONFIG_FILE_PATH, "w") as f: json.dump(CONFIG, f, indent=4)
         
-        # New feedback mechanism
+        # Feedback mechanism
         original_text = save_button['text']
         save_button.config(text="✓ Saved!", style="Saved.TButton")
         save_button.config(state=tk.DISABLED)
@@ -262,7 +262,7 @@ def set_capture_target(target_widget, button, original_style, key):
     capture_window.bind("<Button-1>", on_capture_click)
     capture_window.bind("<Escape>", lambda e: (e.widget.destroy(), root.deiconify(), button.config(style=original_style), [btn.config(state=tk.NORMAL) for btn in all_set_buttons]))
 
-# --- Animated Gradient Logic ---
+# --- RESTORED Rainbow Animation System ---
 def create_smooth_gradient(colors, steps_per_transition):
     gradient = []; extended_colors = colors + [colors[0]]
     for i in range(len(extended_colors) - 1):
@@ -278,27 +278,37 @@ def animate_gradient_thread(bar_canvas, header_canvas, header_font, header_text,
     while is_animating:
         try:
             color_deque.rotate(-1); current_colors = list(color_deque)
-            for canvas in [bar_canvas, header_canvas]:
-                if canvas.winfo_exists(): canvas.after(0, update_animations, bar_canvas, header_canvas, header_font, header_text, current_colors)
+            # Use root.after for thread-safe UI updates
+            if 'root' in globals() and root.winfo_exists():
+                root.after(0, update_animations, bar_canvas, header_canvas, header_font, header_text, current_colors)
             time.sleep(0.05)
         except Exception: break
 
 def update_animations(bar_canvas, header_canvas, header_font, header_text, colors):
-    for canvas in [bar_canvas, header_canvas]: canvas.delete("all")
-    width, height = bar_canvas.winfo_width(), bar_canvas.winfo_height()
-    if width > 1:
-        for i, color in enumerate(colors):
-            x0, x1 = i * (width/len(colors)), (i+1) * (width/len(colors))
-            bar_canvas.create_rectangle(x0, 0, x1, height, fill=color, outline="")
-    header_width, header_height = header_canvas.winfo_width(), header_canvas.winfo_height()
-    if header_width > 1:
-        text_width = header_font.measure(header_text)
-        x_start, y_center = (header_width - text_width) / 2, header_height / 2
-        char_colors = deque(colors)
-        for char in header_text:
-            char_width = header_font.measure(char)
-            header_canvas.create_text(x_start, y_center, text=char, fill=char_colors[0], font=header_font, anchor='w')
-            x_start += char_width; char_colors.rotate(-4) 
+    try:
+        # Update rainbow bar canvas
+        if bar_canvas.winfo_exists():
+            bar_canvas.delete("all")
+            width, height = bar_canvas.winfo_width(), bar_canvas.winfo_height()
+            if width > 1:
+                for i, color in enumerate(colors):
+                    x0, x1 = i * (width/len(colors)), (i+1) * (width/len(colors))
+                    bar_canvas.create_rectangle(x0, 0, x1, height, fill=color, outline="")
+        
+        # Update header text animation
+        if header_canvas.winfo_exists():
+            header_canvas.delete("all")
+            header_width, header_height = header_canvas.winfo_width(), header_canvas.winfo_height()
+            if header_width > 1:
+                text_width = header_font.measure(header_text)
+                x_start, y_center = (header_width - text_width) / 2, header_height / 2
+                char_colors = deque(colors)
+                for char in header_text:
+                    char_width = header_font.measure(char)
+                    header_canvas.create_text(x_start, y_center, text=char, fill=char_colors[0], font=header_font, anchor='w')
+                    x_start += char_width; char_colors.rotate(-4)
+    except Exception:
+        pass
 
 def finder_loop(label):
     while is_animating:
@@ -315,7 +325,15 @@ def create_gui():
     load_config()
     root = tk.Tk()
     root.title("Pixel Blade Chest Opener")
-    root.geometry("680x780"); root.resizable(False, False)
+    
+    # --- Window Management Fixes (Keeping the working fixes) ---
+    root.geometry("680x780")
+    root.resizable(False, False)
+    root.wm_attributes("-toolwindow", False)  # Ensure taskbar visibility
+    root.attributes('-alpha', 1.0)  # Ensure window opacity
+    root.lift()  # Bring window to front
+    root.attributes('-topmost', True)  # Temporarily force to front
+    root.after(100, lambda: root.attributes('-topmost', False))  # Release after position
     
     # --- Theme ---
     BG_COLOR, FRAME_COLOR, TEXT_COLOR, ENTRY_BG, HEADER_COLOR = "#2B2B2B", "#3C3F41", "#A9B7C6", "#313335", "#CCCCCC"
@@ -337,14 +355,14 @@ def create_gui():
     for i, color in enumerate(DULL_RAINBOW):
         style.configure(f'Accent{i}.TButton', background=color, foreground=HEADER_COLOR)
         style.map(f'Accent{i}.TButton', background=[('active', TEXT_COLOR)])
-    style.configure('Saved.TButton', background="#6F8C53", foreground=HEADER_COLOR) # Style for saved feedback
-
+    style.configure('Saved.TButton', background="#6F8C53", foreground=HEADER_COLOR)
+    
     # --- Main App Frame ---
     main_frame = ttk.Frame(root, padding=20)
     main_frame.pack(expand=True, fill="both")
     main_frame.columnconfigure(0, weight=1); main_frame.rowconfigure(2, weight=1)
     
-    # --- Animated Header ---
+    # --- Animated Header (Restored) ---
     header_font = tkFont(family=font_family, size=18, weight='bold')
     header_text = "Pixel Blade Chest Opener"
     header_canvas = tk.Canvas(main_frame, height=header_font.metrics('linespace'), bg=BG_COLOR, highlightthickness=0)
@@ -427,6 +445,7 @@ def create_gui():
 
     keyboard.add_hotkey('f6', toggle_automation)
     
+    # --- RESTORED Animation System ---
     smooth_gradient_colors = create_smooth_gradient(DULL_RAINBOW, 30)
     animation_thread = threading.Thread(target=animate_gradient_thread, args=(rainbow_canvas, header_canvas, header_font, header_text, smooth_gradient_colors), daemon=True)
     animation_thread.start()
@@ -436,7 +455,8 @@ def create_gui():
     
     def on_closing():
         global is_animating; is_animating = False
-        stop_automation(); root.destroy()
+        stop_automation()
+        root.destroy()
     root.protocol("WM_DELETE_WINDOW", on_closing)
     root.mainloop()
 

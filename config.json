@@ -1,16 +1,16 @@
 {
     "chest_slot": {
         "x": 1383,
-        "y": 300
+        "y": 295
     },
     "open_button": {
-        "x": 2438,
-        "y": 852
+        "x": 2424,
+        "y": 899
     },
     "opening_click_pos": {
-        "x": 1943,
-        "y": 517
+        "x": 1970,
+        "y": 573
     },
-    "opening_duration": 5.451086956521739,
+    "opening_duration": 5.831521739130435,
     "opening_click_interval": 0.3675
 }
