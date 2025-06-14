@@ -178,29 +178,34 @@
 
         const smoothGradient = createSmoothGradient(DULL_RAINBOW, 30);
         let gradientOffset = 0;
+        let lastTimestamp = 0;
+        const animationInterval = 100; // Slower animation speed
 
-        function animateGradients() {
-            // Animate Header Text using gradient-text class
-            const header = document.getElementById('animated-header');
-            const headerGradient = `linear-gradient(90deg, ${smoothGradient[gradientOffset % smoothGradient.length]}, ${smoothGradient[(gradientOffset + 40) % smoothGradient.length]}, ${smoothGradient[(gradientOffset + 80) % smoothGradient.length]})`;
-            header.style.backgroundImage = headerGradient;
+        function animateGradients(timestamp) {
+            if (timestamp - lastTimestamp > animationInterval) {
+                lastTimestamp = timestamp;
 
-            // Animate Bar and Download Button
-            const bar = document.getElementById('rainbow-bar');
-            const downloadButton = document.getElementById('download-button');
-            const barGradient = `linear-gradient(90deg, ${smoothGradient.slice(gradientOffset).concat(smoothGradient.slice(0, gradientOffset)).join(', ')})`;
+                // Animate Header Text using gradient-text class
+                const header = document.getElementById('animated-header');
+                const headerGradient = `linear-gradient(90deg, ${smoothGradient[gradientOffset % smoothGradient.length]}, ${smoothGradient[(gradientOffset + 40) % smoothGradient.length]}, ${smoothGradient[(gradientOffset + 80) % smoothGradient.length]})`;
+                header.style.backgroundImage = headerGradient;
+
+                // Animate Bar and Download Button
+                const bar = document.getElementById('rainbow-bar');
+                const downloadButton = document.getElementById('download-button');
+                const barGradient = `linear-gradient(90deg, ${smoothGradient.slice(gradientOffset).concat(smoothGradient.slice(0, gradientOffset)).join(', ')})`;
+                
+                if (bar) bar.style.background = barGradient;
+                if (downloadButton) downloadButton.style.background = barGradient;
+
+                gradientOffset = (gradientOffset + 1) % smoothGradient.length;
+            }
             
-            if (bar) bar.style.background = barGradient;
-            if (downloadButton) downloadButton.style.background = barGradient;
-
-            gradientOffset = (gradientOffset + 1) % smoothGradient.length;
-            
-            // Replaced requestAnimationFrame with setTimeout for slower animation
-            setTimeout(animateGradients, 100); 
+            requestAnimationFrame(animateGradients);
         }
 
         // Start the animation
-        document.addEventListener('DOMContentLoaded', animateGradients);
+        document.addEventListener('DOMContentLoaded', () => requestAnimationFrame(animateGradients));
     </script>
 
 </body>
