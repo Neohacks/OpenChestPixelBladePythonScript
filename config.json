@@ -4,13 +4,13 @@
         "y": 299
     },
     "open_button": {
-        "x": 2452,
-        "y": 866
+        "x": 2424,
+        "y": 824
     },
     "opening_click_pos": {
         "x": 1999,
         "y": 593
     },
-    "opening_duration": 5.603260869565218,
+    "opening_duration": 6.057591623036649,
     "opening_click_interval": 0.3675
 }
