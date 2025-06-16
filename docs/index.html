@@ -7,188 +7,308 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-color: #111217; 
+            /* --- FINALIZED TEXT HIERARCHY --- */
+            --text-bright: #E5E7EB;          /* For main content inside cards */
+            --text-medium: #D1D5DB;          /* For all subheadings and titles */
+            --text-dim: #6B7280;              /* For secondary text (e.g., header subtitle) */
+            --card-bg: rgba(28, 29, 35, 0.75);
+            --border-color: rgba(120, 113, 108, 0.2);
+        }
+
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #1A1A1A; /* Darker background */
-            color: #9E9E9E; /* Base text color */
+            font-family: 'Fira Code', monospace;
+            background-color: var(--bg-color);
+            color: var(--text-dim); /* Default text is the dimmest, most comfortable gray */
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3 {
+            font-family: 'VT323', monospace;
+        }
+
+        h3 {
+            color: var(--text-medium);
+        }
+
+        .pixel-card p, .pixel-card ul, .pixel-card .faq-answer {
+            color: var(--text-bright);
+        }
+        .faq-item button span {
+            color: var(--text-medium);
+        }
+        .faq-icon {
+            color: var(--text-dim);
+        }
+
+        #background-canvas {
+            position: absolute; top: 0; left: 0; width: 100%; z-index: -1;
+        }
+
+        .header-container, .header-content {
+            position: relative; text-align: center;
+        }
+
+        #header-canvas {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; opacity: 0.7;
+        }
+        
+        .gradient-text, .gradient-bg {
+            background-size: 200% 200%;
+            transition: all 0.2s ease-in-out;
         }
         .gradient-text {
-            background-clip: text;
-            -webkit-background-clip: text;
-            color: transparent;
+            background-clip: text; -webkit-background-clip: text; color: transparent; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
         }
-        .btn-accent {
-            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        .gradient-bg {
+            color: #111217; border: 2px solid transparent;
         }
-        .btn-accent:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+        .gradient-bg:hover {
+            transform: translateY(-3px) scale(1.03); box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
         }
-        .feature-card, .instruction-card {
-            background-color: #2C2C2C; /* Darker cards */
-            border: 1px solid #424242;
-            transition: all 0.3s ease;
+
+        /* --- FINALIZED: Button darkening handled purely in CSS --- */
+        .btn-download {
+            background-image: linear-gradient(rgba(0,0,0,0.15), rgba(0,0,0,0.15)), var(--placeholder-gradient);
         }
-        .feature-card:hover, .instruction-card:hover {
-            transform: translateY(-4px);
-            border-color: #5a7042;
+
+        .pixel-card {
+            background-color: var(--card-bg); border: 1px solid var(--border-color); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); clip-path: polygon(0 15px, 15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%); transition: all 0.3s ease; border-image: none;
         }
+        .pixel-card:hover {
+            transform: translateY(-4px); border: 1px solid transparent; border-image-slice: 1;
+        }
+        .pixel-card:hover.gradient-border {
+             border-image-source: linear-gradient(90deg, #E57373, #FFB74D, #FFF176, #81C784, #64B5F6, #BA68C8, #E57373);
+        }
+        
+        .blade-divider {
+            position: relative; width: 100%; max-width: 24rem; margin: 0.5rem auto; height: 24px;
+        }
+        .blade-divider > .line-container {
+            position: absolute; inset: 0; display: flex; align-items: center;
+        }
+        .blade-divider .line {
+            width: 100%; height: 2px; background-size: 400% 400%;
+        }
+        .blade-divider > .icon-container {
+            position: relative; display: flex; justify-content: center; height: 100%; align-items: center;
+        }
+        .blade-divider .icon-bg {
+            padding: 0 0.5rem;
+        }
+        
+        .faq-item button { display: flex; width: 100%; justify-content: space-between; align-items: center; text-align: left; background-color: rgba(255,255,255,0.05); padding: 1rem 1.5rem; border-radius: 0.25rem; transition: background-color 0.2s; }
+        .faq-item button:hover { background-color: rgba(255,255,255,0.1); }
+        .faq-item .faq-answer { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out, padding 0.3s ease-out; padding: 0 1.5rem; }
+        .faq-item.active .faq-answer { max-height: 20rem; padding: 1.5rem; }
+        .faq-icon { transition: transform 0.3s ease; }
+        .faq-item.active .faq-icon { transform: rotate(180deg); }
+
     </style>
 </head>
 <body class="antialiased">
+    <canvas id="background-canvas"></canvas>
 
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
 
-        <!-- Header Section -->
-        <header class="text-center">
-            <h1 id="animated-header" class="gradient-text text-5xl md:text-6xl font-extrabold tracking-tight">
-                Pixel Blade Chest Opener
-            </h1>
-            <canvas id="rainbow-bar" class="w-full h-1.5 mt-4 rounded-full"></canvas>
-            <div class="mt-6 max-w-3xl mx-auto text-lg text-gray-400 bg-black/20 p-6 rounded-xl border border-gray-800">
-                A sophisticated automation tool with a polished GUI for opening chests in the Roblox game *Pixel Blade*.
+        <header class="header-container py-10">
+            <canvas id="header-canvas"></canvas>
+            <div class="header-content z-10">
+                <h1 class="gradient-text text-6xl md:text-8xl tracking-widest">
+                    Pixel Blade Chest Opener
+                </h1>
+                <div class="mt-6 max-w-3xl mx-auto text-lg">
+                    <p>A dedicated automation tool with a thematic GUI for opening chests in the Roblox game *Pixel Blade*.</p>
+                </div>
             </div>
         </header>
 
-        <!-- Main Content Area -->
-        <main class="mt-16">
+        <main class="mt-12">
             
-            <!-- Download Button Section -->
             <section class="text-center">
-                <div class="mt-8">
-                     <!-- Download link updated -->
-                    <a id="download-button" href="https://github.com/Neohacks/OpenChestPixelBladePythonScript/releases/tag/v1.0.0" 
-                       class="btn-accent inline-block text-gray-300 font-bold rounded-lg px-10 py-5 text-xl">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 inline-block mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                        Download v1.0.0
-                    </a>
-                </div>
+                <a href="https://github.com/Neohacks/OpenChestPixelBladePythonScript/releases/tag/v1.0.0" 
+                   class="gradient-bg btn-download inline-block font-bold rounded-md px-12 py-4 text-2xl" style="font-family: 'VT323', monospace;">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline-block mr-2 -mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                    Download v1.0.0
+                </a>
             </section>
 
-            <!-- Features Section -->
-            <section class="mt-24">
-                <h2 class="text-4xl font-bold text-center text-gray-300 tracking-tight">Key Features</h2>
-                <div class="mt-12 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-                    <!-- Feature 1 -->
-                    <div class="feature-card rounded-lg p-6 text-center">
-                        <div class="flex items-center justify-center h-12 w-12 rounded-md text-gray-300 mx-auto" style="background-color: #6e4545;">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 16v-2m-6.364-1.636L7.05 17.55m11.314-2.828l-1.414-1.414M4 12H2m18 0h-2m-1.636-6.364L16.95 7.05m-2.828 11.314l-1.414 1.414M12 18a6 6 0 100-12 6 6 0 000 12z" /></svg>
-                        </div>
-                        <h3 class="mt-5 text-lg font-medium text-gray-300">Polished UI</h3>
-                        <p class="mt-2 text-base text-gray-500">A modern dark-themed UI with an animated rainbow gradient for a premium feel.</p>
-                    </div>
-                    <!-- Feature 2 -->
-                    <div class="feature-card rounded-lg p-6 text-center">
-                        <div class="flex items-center justify-center h-12 w-12 rounded-md text-gray-300 mx-auto" style="background-color: #6e6e45;">
-                           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.494v1.076c0 .816-.316 1.58-1.076 2.158l-5.618 4.494a2.5 2.5 0 01-3.232 0L2.458 9.734A2.5 2.5 0 011.382 7.58V6.506a2.5 2.5 0 012.5-2.5h16.236a2.5 2.5 0 012.5 2.5z" /></svg>
-                        </div>
-                        <h3 class="mt-5 text-lg font-medium text-gray-300">Reliable Automation</h3>
-                        <p class="mt-2 text-base text-gray-500">Employs low-level `SendInput` API for hardware-like clicks that are harder for games to block.</p>
-                    </div>
-                    <!-- Feature 3 -->
-                    <div class="feature-card rounded-lg p-6 text-center">
-                        <div class="flex items-center justify-center h-12 w-12 rounded-md text-gray-300 mx-auto" style="background-color: #456e6e;">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                        </div>
-                        <h3 class="mt-5 text-lg font-medium text-gray-300">One-Click Config</h3>
-                        <p class="mt-2 text-base text-gray-500">Interactively set all screen coordinates with a simple point-and-click process.</p>
-                    </div>
+            <section class="mt-24 text-center">
+                <h2 class="gradient-text text-5xl font-bold tracking-wider">System Capabilities Briefing</h2>
+                <div class="blade-divider">
+                    <div class="line-container"><div class="line gradient-bg"></div></div>
+                    <div class="icon-container"><span class="icon-bg"><canvas class="sword-icon-small" width="24" height="24"></canvas></span></div>
+                </div>
+                <div class="mt-8 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                    <div class="pixel-card gradient-border p-6"><h3 class="text-3xl font-medium">Thematic Pixel GUI</h3><p class="mt-3 text-base">A custom dark-themed UI inspired by the game itself, featuring pixelated elements and animated accents.</p></div>
+                    <div class="pixel-card gradient-border p-6"><h3 class="text-3xl font-medium">Hardware Emulation</h3><p class="mt-3 text-base">Employs low-level `SendInput` for undetectable, hardware-like clicks that bypass typical game client checks.</p></div>
+                    <div class="pixel-card gradient-border p-6"><h3 class="text-3xl font-medium">One-Click Calibration</h3><p class="mt-3 text-base">Interactively set all screen coordinates with a simple point-and-click process. No manual coordinates needed.</p></div>
                 </div>
             </section>
             
-            <section class="mt-24">
-                <h2 class="text-4xl font-bold text-center text-gray-300 tracking-tight">Installation & Usage</h2>
-                <div class="mt-12 max-w-4xl mx-auto grid gap-8 md:grid-cols-2">
-                    <div class="instruction-card rounded-lg p-6 flex items-start space-x-4">
-                        <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full text-xl font-bold text-gray-300" style="background-color: #61456e;">1</div>
-                        <div>
-                            <h3 class="text-lg font-medium text-gray-300">Download & Prepare</h3>
-                            <p class="mt-1 text-gray-500">Download the project files (`.py` and `.bat`) and place them together in a new folder.</p>
-                        </div>
-                    </div>
-                     <div class="instruction-card rounded-lg p-6 flex items-start space-x-4">
-                        <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full text-xl font-bold text-gray-300" style="background-color: #6e455f;">2</div>
-                        <div>
-                            <h3 class="text-lg font-medium text-gray-300">Run as Administrator</h3>
-                            <p class="mt-1 text-gray-500">Double-click `run.bat`. A UAC prompt will appear. **You must click "Yes"** for clicks to register. The script will auto-install any missing libraries.</p>
-                        </div>
-                    </div>
-                    <div class="instruction-card rounded-lg p-6 flex items-start space-x-4">
-                        <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full text-xl font-bold text-gray-300" style="background-color: #6e4545;">3</div>
-                        <div>
-                            <h3 class="text-lg font-medium text-gray-300">Configure & Save</h3>
-                            <p class="mt-1 text-gray-500">Use the "Set" buttons to capture coordinates for each action. Adjust timings with the sliders, then click "Save Config".</p>
-                        </div>
-                    </div>
-                    <div class="instruction-card rounded-lg p-6 flex items-start space-x-4">
-                        <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full text-xl font-bold text-gray-300" style="background-color: #5a7042;">4</div>
-                        <div>
-                            <h3 class="text-lg font-medium text-gray-300">Start the Bot</h3>
-                            <p class="mt-1 text-gray-500">Click the green **"START (F6)"** button or press the `F6` key to begin automation.</p>
-                        </div>
+            <section class="mt-24 text-center">
+                <h2 class="gradient-text text-5xl font-bold tracking-wider">Version History</h2>
+                 <div class="blade-divider">
+                    <div class="line-container"><div class="line gradient-bg"></div></div>
+                    <div class="icon-container"><span class="icon-bg"><canvas class="sword-icon-small" width="24" height="24"></canvas></span></div>
+                </div>
+                <div class="mt-8 max-w-4xl mx-auto text-left">
+                    <div class="pixel-card gradient-border p-6">
+                        <h3 class="text-3xl font-medium">Version 1.0.0 <span class="text-lg" style="color: var(--text-dim);">- Initial Release</span></h3>
+                        <ul class="list-disc list-inside mt-4 space-y-2">
+                            <li>Initial public release of the chest opener.</li>
+                            <li>Features include a full GUI, coordinate capture, delay settings, and saving/loading configurations.</li>
+                            <li>Low-level `SendInput` API for robust automation.</li>
+                            <li>`run.bat` script for easy dependency installation and admin execution.</li>
+                        </ul>
                     </div>
                 </div>
             </section>
 
+            <section class="mt-24 text-center">
+                <h2 class="gradient-text text-5xl font-bold tracking-wider">Operational Protocol & FAQ</h2>
+                 <div class="blade-divider">
+                    <div class="line-container"><div class="line gradient-bg"></div></div>
+                    <div class="icon-container"><span class="icon-bg"><canvas class="sword-icon-small" width="24" height="24"></canvas></span></div>
+                </div>
+                <div class="mt-8 max-w-4xl mx-auto space-y-4">
+                    <div class="faq-item pixel-card p-2">
+                        <button class="faq-question"><span class="text-2xl font-medium">Why do I need to 'Run as Administrator'?</span><svg class="faq-icon h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg></button>
+                        <div class="faq-answer"><p>To interact with another application's window (like Roblox), the script needs higher permissions than a standard user. Running as an administrator grants it the necessary privileges to send hardware-level clicks directly to the game client, which is essential for the bot to function correctly.</p></div>
+                    </div>
+                    <div class="faq-item pixel-card p-2">
+                        <button class="faq-question"><span class="text-2xl font-medium">Is this safe? Will I get banned?</span><svg class="faq-icon h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg></button>
+                        <div class="faq-answer"><p class="font-bold" style="color: #FFB74D;">Disclaimer: Use at your own risk.</p><p class="mt-2">Any form of automation violates Roblox's Terms of Service. While this tool is designed to be less detectable by emulating hardware inputs rather than injecting code, no bot is ever 100% undetectable. To minimize risk, use the bot in private servers and avoid running it for excessively long periods.</p></div>
+                    </div>
+                    <div class="faq-item pixel-card p-2">
+                        <button class="faq-question"><span class="text-2xl font-medium">The bot isn't clicking in the right place.</span><svg class="faq-icon h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg></button>
+                        <div class="faq-answer"><p>This is almost always a configuration issue. Follow these steps:</p><ul class="list-disc list-inside mt-2 space-y-1"><li>Ensure the Roblox game window is at your desired size and position <span class="font-bold" style="color: var(--text-medium);">before</span> you start setting coordinates.</li><li>Do not move or resize the game window after saving the config.</li><li>When using the 'Set' buttons, make sure you are clicking precisely in the center of the target button in-game.</li><li>If issues persist, delete your `config.json` file and recalibrate from scratch.</li></ul></div>
+                    </div>
+                </div>
+            </section>
         </main>
     </div>
 
-    <footer class="mt-24 bg-black/50">
-        <div class="max-w-5xl mx-auto py-8 px-4 sm:px-6 lg:px-8 text-center text-gray-700">
-             <div class="mb-4">
-                <h3 class="text-lg font-semibold text-gray-400">Credits</h3>
-                <p class="text-gray-500">This project was a collaborative effort between <a href="https://github.com/Neohacks" class="text-gray-400 hover:text-gray-300">Neohacks</a> and Google's Gemini.</p>
-            </div>
-            <a href="https://github.com/Neohacks/OpenChestPixelBladePythonScript" class="hover:text-gray-500 transition-colors">View on GitHub</a>
+    <footer class="mt-24 border-t border-t-[var(--border-color)] bg-black/30">
+        <div class="max-w-5xl mx-auto py-8 px-4 sm:px-6 lg:px-8 text-center">
+             <div class="mb-4"><h3 class="text-xl">Credits</h3><p>This project was a collaborative effort between <a href="https://github.com/Neohacks" class="gradient-text">Neohacks</a> and Google's Gemini.</p></div>
+            <a href="https://github.com/Neohacks/OpenChestPixelBladePythonScript" class="gradient-text">View Source on GitHub</a>
         </div>
     </footer>
 
     <script>
-        const DULL_RAINBOW = ["#6e4545", "#6e5a45", "#6e6e45", "#5a7042", "#456e6e", "#61456e", "#6e455f"];
-        
-        function createSmoothGradient(colors, steps) {
-            const gradient = [];
-            const extended_colors = [...colors, colors[0]];
-            for (let i = 0; i < extended_colors.length - 1; i++) {
-                const c1 = extended_colors[i], c2 = extended_colors[i+1];
-                const r1 = parseInt(c1.slice(1,3),16), g1=parseInt(c1.slice(3,5),16), b1=parseInt(c1.slice(5,7),16);
-                const r2 = parseInt(c2.slice(1,3),16), g2=parseInt(c2.slice(3,5),16), b2=parseInt(c2.slice(5,7),16);
-                for (let j = 0; j < steps; j++) {
-                    const p = j / steps;
-                    const r = Math.round(r1 * (1-p) + r2 * p), g=Math.round(g1 * (1-p) + g2 * p), b=Math.round(b1 * (1-p) + b2 * p);
-                    gradient.push(`rgb(${r},${g},${b})`);
+        document.addEventListener('DOMContentLoaded', () => {
+            const VIBRANT_RAINBOW = ['#E57373', '#FFB74D', '#FFF176', '#81C784', '#64B5F6', '#BA68C8'];
+
+            let gradientOffset = 0;
+            function masterAnimate() {
+                gradientOffset = (gradientOffset + 0.2) % 360;
+                const loopedGradientCss = `linear-gradient(${gradientOffset}deg, ${[...VIBRANT_RAINBOW, VIBRANT_RAINBOW[0]].join(', ')})`;
+                
+                document.querySelectorAll('.gradient-text').forEach(el => el.style.backgroundImage = loopedGradientCss);
+                document.querySelectorAll('.blade-divider .line').forEach(el => el.style.backgroundImage = loopedGradientCss);
+                document.querySelectorAll('.pixel-card.gradient-border').forEach(el => el.style.borderImageSource = loopedGradientCss);
+                
+                // Set placeholder for JS to apply animation
+                document.querySelectorAll('.btn-download').forEach(el => {
+                    el.style.setProperty('--placeholder-gradient', loopedGradientCss);
+                });
+                
+                animateSlashes();
+                animateStars();
+                requestAnimationFrame(masterAnimate);
+            }
+            
+            const bgCanvas = document.getElementById('background-canvas');
+            const bgCtx = bgCanvas.getContext('2d');
+            let stars = [], terrain = [], terrainStep = 20;
+
+            function resizeBackground() {
+                bgCanvas.width = window.innerWidth;
+                bgCanvas.height = document.body.scrollHeight;
+                stars = [];
+                for(let i = 0; i < 400; i++) stars.push(new Star());
+                generateTerrain();
+            }
+
+            class Star {
+                constructor() { this.reset(); }
+                reset() { this.x = Math.random() * bgCanvas.width; this.y = Math.random() * bgCanvas.height; this.radius = Math.random() * 1.5 + 0.5; this.alpha = Math.random() * 0.5 + 0.5; this.twinkleSpeed = Math.random() * 0.02; this.speed = this.radius * 0.2; }
+                update() { this.x -= this.speed; if(this.x < 0) this.x = bgCanvas.width; this.alpha = 0.5 + 0.5 * Math.sin(this.twinkleSpeed * Date.now() * 0.001); }
+                draw() {
+                    bgCtx.beginPath();
+                    bgCtx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                    bgCtx.fillStyle = `rgba(156, 163, 175, ${this.alpha})`;
+                    bgCtx.fill();
                 }
             }
-            return gradient;
-        }
-
-        const smoothGradient = createSmoothGradient(DULL_RAINBOW, 30);
-        let gradientOffset = 0, lastTimestamp = 0;
-        const animationInterval = 200; // Further slowed down animation
-
-        function animateGradients(timestamp) {
-            if (timestamp - lastTimestamp > animationInterval) {
-                lastTimestamp = timestamp;
-                const header = document.getElementById('animated-header');
-                const bar = document.getElementById('rainbow-bar');
-                const downloadButton = document.getElementById('download-button');
-                
-                const headerGradient = `linear-gradient(90deg, ${smoothGradient[gradientOffset % smoothGradient.length]}, ${smoothGradient[(gradientOffset + 40) % smoothGradient.length]}, ${smoothGradient[(gradientOffset + 80) % smoothGradient.length]})`;
-                header.style.backgroundImage = headerGradient;
-
-                const barGradient = `linear-gradient(90deg, ${smoothGradient.slice(gradientOffset).concat(smoothGradient.slice(0, gradientOffset)).join(', ')})`;
-                if (bar) bar.style.background = barGradient;
-                if (downloadButton) downloadButton.style.background = barGradient;
-
-                gradientOffset = (gradientOffset + 1) % smoothGradient.length;
+            
+            function generateTerrain() {
+                terrain = []; let currentHeight = 70;
+                for (let x = 0; x < bgCanvas.width + terrainStep; x += terrainStep) {
+                    terrain.push({x: x, h: currentHeight});
+                    currentHeight += (Math.random() - 0.48) * 10;
+                    if (currentHeight < 40) currentHeight = 40; if (currentHeight > 120) currentHeight = 120;
+                }
             }
-            requestAnimationFrame(animateGradients);
-        }
-        document.addEventListener('DOMContentLoaded', () => requestAnimationFrame(animateGradients));
+
+            function drawTerrain() {
+                const terrainGradient = bgCtx.createLinearGradient(0, bgCanvas.height - 120, 0, bgCanvas.height);
+                terrainGradient.addColorStop(0, '#211f1e');
+                terrainGradient.addColorStop(1, '#111217');
+                bgCtx.fillStyle = terrainGradient;
+                bgCtx.beginPath(); bgCtx.moveTo(0, bgCanvas.height);
+                terrain.forEach(p => { bgCtx.lineTo(p.x, bgCanvas.height - p.h); if (p.x + terrainStep < bgCanvas.width) { bgCtx.lineTo(p.x + terrainStep, bgCanvas.height - p.h); } });
+                bgCtx.lineTo(bgCanvas.width, bgCanvas.height); bgCtx.closePath(); bgCtx.fill();
+            }
+
+            function animateStars() { bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height); stars.forEach(s => { s.update(); s.draw(); }); drawTerrain(); }
+            
+            let resizeTimeout;
+            window.addEventListener('resize', () => { clearTimeout(resizeTimeout); resizeTimeout = setTimeout(resizeBackground, 150); });
+            resizeBackground();
+
+            const headerCanvas = document.getElementById('header-canvas');
+            const headerCtx = headerCanvas.getContext('2d');
+            let particles = [], slashes = [];
+
+            function resizeHeader() { headerCanvas.width = headerCanvas.parentElement.offsetWidth; headerCanvas.height = headerCanvas.parentElement.offsetHeight; }
+            window.addEventListener('resize', resizeHeader); resizeHeader();
+
+            class Particle { constructor(x, y, color) { this.x=x; this.y=y; this.color=color; this.life=30+Math.random()*20; this.vx=(Math.random()-0.5)*3; this.vy=(Math.random()-0.5)*3; this.size=Math.random()*2+1; } update() { this.x+=this.vx; this.y+=this.vy; this.life--; } draw() { headerCtx.fillStyle=this.color; headerCtx.globalAlpha=this.life/50; headerCtx.fillRect(this.x,this.y,this.size,this.size); headerCtx.globalAlpha=1; } }
+            class Slash {
+                constructor() {
+                    this.life = 60;
+                    this.color = VIBRANT_RAINBOW[Math.floor(Math.random() * VIBRANT_RAINBOW.length)];
+                    const e = Math.floor(Math.random() * 4), w = headerCanvas.width, h = headerCanvas.height;
+                    switch(e){ case 0:this.x1=Math.random()*w;this.y1=0;this.x2=Math.random()*w;this.y2=h;break; case 1:this.x1=w;this.y1=Math.random()*h;this.x2=0;this.y2=Math.random()*h;break; case 2:this.x1=Math.random()*w;this.y1=h;this.x2=Math.random()*w;this.y2=0;break; case 3:this.x1=0;this.y1=Math.random()*h;this.x2=w;this.y2=Math.random()*h;break; }
+                    this.progress = 0;
+                }
+                update() { this.life--; this.progress=1-(this.life/60); if(this.life>0){ const cX=this.x1+(this.x2-this.x1)*this.progress,cY=this.y1+(this.y2-this.y1)*this.progress; particles.push(new Particle(cX,cY,this.color)); } }
+                draw() { headerCtx.beginPath(); headerCtx.moveTo(this.x1,this.y1); headerCtx.lineTo(this.x1+(this.x2-this.x1)*this.progress,this.y1+(this.y2-this.y1)*this.progress); headerCtx.strokeStyle=this.color; headerCtx.lineWidth=3; headerCtx.globalAlpha=Math.sin(this.progress*Math.PI); headerCtx.shadowColor=this.color; headerCtx.shadowBlur=15; headerCtx.stroke(); headerCtx.shadowBlur=0; headerCtx.globalAlpha=1; }
+            }
+            
+            function animateSlashes() { headerCtx.clearRect(0, 0, headerCanvas.width, headerCanvas.height); slashes = slashes.filter(s => s.life > 0); particles = particles.filter(p => p.life > 0); slashes.forEach(s => { s.update(); s.draw(); }); particles.forEach(p => { p.update(); p.draw(); }); }
+            setInterval(() => { if(slashes.length < 2) slashes.push(new Slash()); }, 1500);
+            
+            function drawSmallSword(canvas) {
+                const sCtx = canvas.getContext('2d'), p = 1.5;
+                sCtx.clearRect(0, 0, canvas.width, canvas.height);
+                sCtx.fillStyle = VIBRANT_RAINBOW[4]; sCtx.fillRect(7*p, 2*p, 2*p, 10*p);
+                sCtx.fillStyle = VIBRANT_RAINBOW[3]; sCtx.fillRect(6*p, 3*p, 4*p, 1*p);
+                sCtx.fillStyle = VIBRANT_RAINBOW[0]; sCtx.fillRect(4*p, 12*p, 8*p, 2*p);
+                sCtx.fillStyle = VIBRANT_RAINBOW[1]; sCtx.fillRect(7*p, 14*p, 2*p, 3*p);
+                sCtx.fillStyle = VIBRANT_RAINBOW[2]; sCtx.fillRect(6*p, 16*p, 4*p, 2*p);
+            }
+            document.querySelectorAll('.sword-icon-small').forEach(drawSmallSword);
+
+            document.querySelectorAll('.faq-question').forEach(b => { b.addEventListener('click', () => b.parentElement.classList.toggle('active')); });
+            masterAnimate();
+        });
     </script>
 </body>
 </html>
