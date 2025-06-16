@@ -14,10 +14,10 @@
         :root {
             --bg-color: #111217;
             /* --- FINALIZED TEXT HIERARCHY --- */
-            --text-bright: #E5E7EB;
-            /* For main content inside cards */
-            --text-medium: #D1D5DB;
-            /* For all subheadings and titles */
+            --text-bright: #9CA3AF;
+            /* For main content inside cards - changed from bright to grey */
+            --text-medium: #9CA3AF;
+            /* For all subheadings and titles - changed to grey */
             --text-dim: #6B7280;
             /* For secondary text (e.g., header subtitle) */
             --card-bg: rgba(28, 29, 35, 0.75);
@@ -94,18 +94,25 @@
         }
 
         .gradient-bg {
-            color: #111217;
+            color: var(--text-bright);
             border: 2px solid transparent;
+            transition: all 0.2s ease-in-out;
         }
 
         .gradient-bg:hover {
             transform: translateY(-3px) scale(1.03);
-            box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 15px rgba(156, 163, 175, 0.2);
         }
 
         /* --- FINALIZED: Button darkening handled purely in CSS --- */
         .btn-download {
             background-image: linear-gradient(rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.15)), var(--placeholder-gradient);
+            background-clip: padding-box;
+            -webkit-background-clip: padding-box;
+            color: var(--text-bright) !important;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+            border: 2px solid transparent;
+            background-origin: border-box;
         }
 
         .pixel-card {
@@ -115,7 +122,6 @@
             -webkit-backdrop-filter: blur(8px);
             clip-path: polygon(0 15px, 15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%);
             transition: all 0.3s ease;
-            border-image: none;
         }
 
         .pixel-card:hover {
@@ -167,14 +173,15 @@
             justify-content: space-between;
             align-items: center;
             text-align: left;
-            background-color: rgba(255, 255, 255, 0.05);
+            background-color: rgba(156, 163, 175, 0.05);
             padding: 1rem 1.5rem;
             border-radius: 0.25rem;
-            transition: background-color 0.2s;
+            transition: background-color 0.2s ease;
+            border: 1px solid transparent;
         }
 
         .faq-item button:hover {
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: rgba(156, 163, 175, 0.1);
         }
 
         .faq-item .faq-answer {
@@ -211,8 +218,8 @@
                     Pixel Blade Chest Opener
                 </h1>
                 <div class="mt-6 max-w-3xl mx-auto text-lg">
-                    <p>A dedicated automation tool with a thematic GUI for opening chests in the Roblox game *Pixel
-                        Blade*.</p>
+                    <p>A dedicated automation tool with a thematic GUI for opening chests in the Roblox game <strong>Pixel
+                        Blade</strong>.</p>
                 </div>
             </div>
         </header>
@@ -352,7 +359,7 @@
         <div class="max-w-5xl mx-auto py-8 px-4 sm:px-6 lg:px-8 text-center">
             <div class="mb-4">
                 <h3 class="text-xl">Credits</h3>
-                <p>This project was a collaborative effort between <a href="https://github.com/Neohacks"
+                <p>This project was a collaborative effort between <a href="https://www.neohack.games/"
                         class="gradient-text">Neohacks</a> and Google's Gemini.</p>
             </div>
             <a href="https://github.com/Neohacks/OpenChestPixelBladePythonScript" class="gradient-text">View Source on
